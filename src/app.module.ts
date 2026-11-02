@@ -24,6 +24,22 @@ import { StorageModule } from "./modules/storage/storage.module";
 import { MailModule } from "./modules/mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
 import { PostsModule } from "./modules/posts/posts.module";
+import { SchoolsModule } from "./modules/schools/schools.module";
+import { ContentModule } from "./modules/content/content.module";
+import { ThemeModule } from "./modules/theme/theme.module";
+import { PagesModule } from "./modules/pages/pages.module";
+import { TeachersModule } from "./modules/teachers/teachers.module";
+import { NoticesModule } from "./modules/notices/notices.module";
+import { EventsModule } from "./modules/events/events.module";
+import { GalleryModule } from "./modules/gallery/gallery.module";
+import { NavigationModule } from "./modules/navigation/navigation.module";
+import { SeoModule } from "./modules/seo/seo.module";
+import { DomainsModule } from "./modules/domains/domains.module";
+import { IntegrationsModule } from "./modules/integrations/integrations.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { SettingsModule } from "./modules/settings/settings.module";
+import { PublishingModule } from "./modules/publishing/publishing.module";
+import { PublicSiteModule } from "./modules/public-site/public-site.module";
 
 // App Core Controller & Service
 import { AppController } from "./app.controller";
@@ -61,6 +77,22 @@ import { AppService } from "./app.service";
     UsersModule,
     HealthModule,
     PostsModule,
+    SchoolsModule,
+    ContentModule,
+    ThemeModule,
+    PagesModule,
+    TeachersModule,
+    NoticesModule,
+    EventsModule,
+    GalleryModule,
+    NavigationModule,
+    SeoModule,
+    DomainsModule,
+    IntegrationsModule,
+    AnalyticsModule,
+    SettingsModule,
+    PublishingModule,
+    PublicSiteModule,
   ],
   controllers: [AppController],
   providers: [

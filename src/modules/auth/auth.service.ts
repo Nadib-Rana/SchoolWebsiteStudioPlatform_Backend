@@ -196,6 +196,24 @@ export class AuthService {
       },
     });
 
+    // Fetch school memberships
+    const schoolMembers = await this.prisma.schoolMember.findMany({
+      where: { userId: user.id },
+      include: {
+        school: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            plan: true,
+            isPublished: true,
+          },
+        },
+      },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    });
+
     return {
       user: {
         id: user.id,
@@ -207,6 +225,8 @@ export class AuthService {
         role: user.role,
         status: user.status,
         isEmailVerified: user.isEmailVerified,
+        schoolMembers,
+        activeSchool: schoolMembers[0]?.school || null,
       },
       ...tokens,
     };
@@ -457,6 +477,21 @@ export class AuthService {
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+        schoolMembers: {
+          include: {
+            school: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logoUrl: true,
+                plan: true,
+                isPublished: true,
+              },
+            },
+          },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        },
       },
     });
 

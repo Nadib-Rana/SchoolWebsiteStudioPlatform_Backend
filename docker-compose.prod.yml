@@ -1,73 +1,119 @@
 version: "3.9"
 
 services:
-  # NestJS Application
-  api:
+  # ------------------------------------------
+  # Next.js Frontend Application
+  # ------------------------------------------
+  frontend:
     build:
-      context: .
+      context: ../SchoolWebsiteStudioPlatform_Frontend_new
       dockerfile: Dockerfile
-    container_name: nest_starter_api
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+    container_name: school_studio_frontend
     restart: always
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/nest_starter_db?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      STORAGE_ENDPOINT: minio
-      STORAGE_PORT: 9000
-      STORAGE_USE_SSL: "false"
-      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
-      STORAGE_BUCKET: ${STORAGE_BUCKET}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USER: ${MAIL_USER}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
     ports:
       - "3000:3000"
     depends_on:
-      - postgres
-      - minio
+      api:
+        condition: service_healthy
     networks:
-      - nest_starter_network
+      - school_studio_network
 
-  # PostgreSQL
+  # ------------------------------------------
+  # NestJS Multi-Tenant Backend API
+  # ------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: school_studio_api
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/school_studio_db?schema=public
+      JWT_SECRET: ${JWT_SECRET:-super_secret_school_studio_jwt_access_token_key_2026_xyz}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-super_secret_school_studio_jwt_refresh_token_key_2026_xyz}
+      STORAGE_DRIVER: minio
+      STORAGE_ENDPOINT: minio
+      STORAGE_PORT: 9000
+      STORAGE_USE_SSL: "false"
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-school-studio-uploads}
+      STORAGE_PUBLIC_URL: http://localhost:9000/school-studio-uploads
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_SECURE: "false"
+      MAIL_FROM_NAME: "School Website Studio"
+      MAIL_FROM_EMAIL: "noreply@schoolstudio.site"
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - school_studio_network
+
+  # ------------------------------------------
+  # PostgreSQL Database
+  # ------------------------------------------
   postgres:
     image: postgres:17-alpine
-    container_name: nest_starter_prod_postgres
+    container_name: school_studio_prod_postgres
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: nest_starter_db
+      POSTGRES_DB: school_studio_db
     volumes:
-      - nest_prod_postgres_data:/var/lib/postgresql/data
+      - school_studio_prod_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d school_studio_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - nest_starter_network
+      - school_studio_network
 
-  # MinIO
+  # ------------------------------------------
+  # MinIO Object Storage
+  # ------------------------------------------
   minio:
     image: minio/minio:latest
-    container_name: nest_starter_prod_minio
+    container_name: school_studio_prod_minio
     restart: always
     ports:
       - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minioadmin}
     volumes:
-      - nest_prod_minio_data:/data
-    command: server /data
+      - school_studio_prod_minio_data:/data
+    command: server /data --console-address ":9001"
     networks:
-      - nest_starter_network
+      - school_studio_network
 
 networks:
-  nest_starter_network:
+  school_studio_network:
     driver: bridge
 
 volumes:
-  nest_prod_postgres_data:
+  school_studio_prod_postgres_data:
     driver: local
-  nest_prod_minio_data:
+  school_studio_prod_minio_data:
     driver: local

@@ -38,6 +38,7 @@ async function bootstrap() {
       "Content-Type",
       "Authorization",
       "x-request-id",
+      "x-school-id",
       "ngrok-skip-browser-warning",
     ],
   });
