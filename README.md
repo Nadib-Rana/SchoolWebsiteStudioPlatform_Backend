@@ -214,3 +214,4 @@ Once the app is running, visit **`http://localhost:3000/docs`** to explore all e
 ## 📄 License
 
 This starter template is open-source software licensed under the [MIT license](LICENSE).
+# SchoolWebsiteStudioPlatform_Backend
