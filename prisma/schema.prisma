@@ -6,6 +6,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================
+// User & Platform Enums
+// ==========================================
+
 enum Role {
   SUPER_ADMIN
   ADMIN
@@ -25,6 +29,32 @@ enum OtpType {
   PASSWORD_RESET
   TWO_FACTOR
 }
+
+enum SchoolRole {
+  OWNER
+  ADMIN
+  EDITOR
+  CONTENT_MANAGER
+  ANALYST
+}
+
+enum SchoolPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  EXPIRED
+}
+
+// ==========================================
+// User & Auth Models
+// ==========================================
 
 model User {
   id              String         @id @default(uuid()) @db.Uuid
@@ -47,6 +77,7 @@ model User {
   otps            OtpToken[]
   posts           Post[]
   auditLogs       AuditLog[]
+  schoolMembers   SchoolMember[]
 
   @@index([email])
   @@index([role])
@@ -122,4 +153,452 @@ model AuditLog {
   @@index([userId])
   @@index([entity])
   @@map("audit_logs")
+}
+
+// ==========================================
+// Multi-Tenant School Models
+// ==========================================
+
+model School {
+  id               String       @id @default(uuid()) @db.Uuid
+  name             String
+  slug             String       @unique
+  customDomain     String?      @unique @map("custom_domain")
+  logoUrl          String?      @map("logo_url")
+  faviconUrl       String?      @map("favicon_url")
+  status           String       @default("ACTIVE")
+  plan             SchoolPlan   @default(PROFESSIONAL)
+  planStorageLimit BigInt       @default(10737418240) @map("plan_storage_limit") // 10 GB
+  isPublished      Boolean      @default(true) @map("is_published")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  members          SchoolMember[]
+  profile          SchoolProfile?
+  themeConfig      SchoolThemeConfig?
+  pages            WebPage[]
+  teachers         Teacher[]
+  notices          Notice[]
+  events           SchoolEvent[]
+  albums           GalleryAlbum[]
+  menus            NavigationMenu[]
+  mediaAssets      MediaAsset[]
+  seoConfig        SeoConfig?
+  domains          CustomDomain[]
+  integrations     SchoolIntegration[]
+  versions         WebsiteVersion[]
+  inquiries        ContactInquiry[]
+  analytics        AnalyticsDaily[]
+  settings         SchoolSettings?
+
+  @@index([slug])
+  @@index([customDomain])
+  @@map("schools")
+}
+
+model SchoolMember {
+  id        String     @id @default(uuid()) @db.Uuid
+  schoolId  String     @db.Uuid @map("school_id")
+  userId    String     @db.Uuid @map("user_id")
+  role      SchoolRole @default(OWNER)
+  isDefault Boolean    @default(false) @map("is_default")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, userId])
+  @@index([userId])
+  @@index([schoolId])
+  @@map("school_members")
+}
+
+model SchoolProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  schoolId           String   @unique @db.Uuid @map("school_id")
+  established        Int?     @default(1984)
+  motto              String?  @default("Excellence in Education, Leadership in Character")
+  shortBio           String?  @db.Text @map("short_bio")
+  principalName      String?  @map("principal_name")
+  principalTitle     String?  @default("Principal & Head Administrator") @map("principal_title")
+  principalBio       String?  @db.Text @map("principal_bio")
+  principalPhotoUrl  String?  @map("principal_photo_url")
+  visionStatement    String?  @db.Text @map("vision_statement")
+  missionStatement   String?  @db.Text @map("mission_statement")
+  address            String?  @default("142 Northfield Avenue, Riverdale, NY 10471")
+  phone              String?  @default("+1 (555) 234-5678")
+  email              String?  @default("admissions@northfieldhigh.edu")
+  officeHours        String?  @default("Monday - Friday: 8:00 AM - 4:30 PM") @map("office_hours")
+  emergencyPhone     String?  @map("emergency_phone")
+  socialLinks        Json?    @map("social_links")
+  stats              Json?
+  academics          Json?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_profiles")
+}
+
+model SchoolThemeConfig {
+  id               String   @id @default(uuid()) @db.Uuid
+  schoolId         String   @unique @db.Uuid @map("school_id")
+  activeTheme      String   @default("theme-classic") @map("active_theme")
+  selectedTemplate String   @default("tpl-classic") @map("selected_template")
+  primaryColor     String   @default("#1E3A8A") @map("primary_color")
+  secondaryColor   String   @default("#0D9488") @map("secondary_color")
+  accentColor      String   @default("#F59E0B") @map("accent_color")
+  fontHeading      String   @default("DM Serif Display") @map("font_heading")
+  fontBody         String   @default("Inter") @map("font_body")
+  buttonRadius     String   @default("rounded-md") @map("button_radius")
+  buttonShadow     String   @default("shadow-sm") @map("button_shadow")
+  cardStyle        String   @default("bordered") @map("card_style")
+  headerLayout     String   @default("standard") @map("header_layout")
+  footerLayout     String   @default("detailed") @map("footer_layout")
+  draftConfig      Json?    @map("draft_config")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_theme_configs")
+}
+
+model WebPage {
+  id              String        @id @default(uuid()) @db.Uuid
+  schoolId        String        @db.Uuid @map("school_id")
+  slug            String
+  title           String
+  navLabel        String?       @map("nav_label")
+  isHome          Boolean       @default(false) @map("is_home")
+  isSystem        Boolean       @default(false) @map("is_system")
+  status          PublishStatus @default(PUBLISHED)
+  order           Int           @default(0)
+  metaTitle       String?       @map("meta_title")
+  metaDescription String?       @map("meta_description")
+  featuredImage   String?       @map("featured_image")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sections        PageSection[]
+
+  @@unique([schoolId, slug])
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@map("web_pages")
+}
+
+model PageSection {
+  id        String   @id @default(uuid()) @db.Uuid
+  pageId    String   @db.Uuid @map("page_id")
+  type      String   // hero, stats, principal, programs, faculty, news, events, facilities, cta, contact, etc.
+  title     String?
+  content   Json?
+  order     Int      @default(0)
+  isVisible Boolean  @default(true) @map("is_visible")
+  settings  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  page      WebPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([pageId, order])
+  @@map("page_sections")
+}
+
+model Teacher {
+  id            String   @id @default(uuid()) @db.Uuid
+  schoolId      String   @db.Uuid @map("school_id")
+  name          String
+  designation   String
+  department    String
+  qualification String?
+  email         String?
+  phone         String?
+  photoUrl      String?  @map("photo_url")
+  bio           String?  @db.Text
+  order         Int      @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, department])
+  @@map("teachers")
+}
+
+model Notice {
+  id          String        @id @default(uuid()) @db.Uuid
+  schoolId    String        @db.Uuid @map("school_id")
+  title       String
+  category    String        @default("General")
+  description String        @db.Text
+  fileUrl     String?       @map("file_url")
+  isPinned    Boolean       @default(false) @map("is_pinned")
+  priority    String        @default("NORMAL")
+  status      PublishStatus @default(PUBLISHED)
+  publishDate DateTime      @default(now()) @map("publish_date")
+  expiryDate  DateTime?     @map("expiry_date")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  school      School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@map("notices")
+}
+
+model SchoolEvent {
+  id              String        @id @default(uuid()) @db.Uuid
+  schoolId        String        @db.Uuid @map("school_id")
+  title           String
+  description     String?       @db.Text
+  category        String        @default("Academic")
+  eventDate       DateTime      @map("event_date")
+  endDate         DateTime?     @map("end_date")
+  time            String?
+  venue           String?
+  bannerUrl       String?       @map("banner_url")
+  status          PublishStatus @default(PUBLISHED)
+  registrationUrl String?       @map("registration_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, eventDate])
+  @@map("school_events")
+}
+
+model GalleryAlbum {
+  id          String         @id @default(uuid()) @db.Uuid
+  schoolId    String         @db.Uuid @map("school_id")
+  title       String
+  slug        String
+  description String?        @db.Text
+  coverUrl    String?        @map("cover_url")
+  category    String?
+  photosCount Int            @default(0) @map("photos_count")
+  order       Int            @default(0)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  photos      GalleryPhoto[]
+
+  @@unique([schoolId, slug])
+  @@index([schoolId])
+  @@map("gallery_albums")
+}
+
+model GalleryPhoto {
+  id           String       @id @default(uuid()) @db.Uuid
+  albumId      String       @db.Uuid @map("album_id")
+  caption      String?
+  url          String
+  thumbnailUrl String?      @map("thumbnail_url")
+  sizeBytes    BigInt?      @map("size_bytes")
+  order        Int          @default(0)
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  album        GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId])
+  @@map("gallery_photos")
+}
+
+model NavigationMenu {
+  id        String               @id @default(uuid()) @db.Uuid
+  schoolId  String               @db.Uuid @map("school_id")
+  location  String               // HEADER, FOOTER, PORTAL
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  school    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  items     NavigationMenuItem[]
+
+  @@unique([schoolId, location])
+  @@index([schoolId])
+  @@map("navigation_menus")
+}
+
+model NavigationMenuItem {
+  id         String         @id @default(uuid()) @db.Uuid
+  menuId     String         @db.Uuid @map("menu_id")
+  label      String
+  url        String
+  pageSlug   String?        @map("page_slug")
+  parentId   String?        @db.Uuid @map("parent_id")
+  order      Int            @default(0)
+  isExternal Boolean        @default(false) @map("is_external")
+  target     String         @default("_self")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  menu       NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([menuId])
+  @@index([parentId])
+  @@map("navigation_menu_items")
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid()) @db.Uuid
+  schoolId     String   @db.Uuid @map("school_id")
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  sizeBytes    BigInt   @map("size_bytes")
+  url          String
+  thumbnailUrl String?  @map("thumbnail_url")
+  category     String   @default("IMAGE") // IMAGE, DOCUMENT, VIDEO
+  tags         String[] @default([])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, category])
+  @@map("media_assets")
+}
+
+model SeoConfig {
+  id               String   @id @default(uuid()) @db.Uuid
+  schoolId         String   @unique @db.Uuid @map("school_id")
+  siteTitle        String?  @default("Northfield High School | Inspiring Excellence Since 1984") @map("site_title")
+  tagline          String?  @default("A premier public secondary institution offering AP courses, championship athletics, and STEAM programs.")
+  metaDescription  String?  @db.Text @map("meta_description")
+  metaKeywords     String[] @default(["Northfield High", "High School NY", "AP Program", "College Prep", "STEM Education", "Arts and Athletics"]) @map("meta_keywords")
+  ogImageUrl       String?  @map("og_image_url")
+  googleAnalyticsId String? @map("google_analytics_id")
+  searchConsoleTag String?  @map("search_console_tag")
+  robotsTxt        String?  @db.Text @map("robots_txt")
+  sitemapEnabled   Boolean  @default(true) @map("sitemap_enabled")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("seo_configs")
+}
+
+model CustomDomain {
+  id         String    @id @default(uuid()) @db.Uuid
+  schoolId   String    @db.Uuid @map("school_id")
+  domain     String    @unique
+  status     String    @default("PENDING_DNS") // PENDING_DNS, VERIFIED, SSL_ACTIVE, FAILED
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  dnsRecords Json?     @map("dns_records")
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  school     School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("custom_domains")
+}
+
+model SchoolIntegration {
+  id          String    @id @default(uuid()) @db.Uuid
+  schoolId    String    @db.Uuid @map("school_id")
+  type        String    // SCHOOL_ERP, ADMISSION_GATEWAY, SMS_GATEWAY, PAYMENT_GATEWAY
+  name        String
+  status      String    @default("CONNECTED") // CONNECTED, SYNCING, ERROR, INACTIVE
+  credentials Json?
+  lastSyncAt  DateTime? @map("last_sync_at")
+  syncHistory Json?     @map("sync_history")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, type])
+  @@map("school_integrations")
+}
+
+model WebsiteVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  schoolId     String   @db.Uuid @map("school_id")
+  versionTag   String   @map("version_tag")
+  summary      String
+  snapshotData Json?    @map("snapshot_data")
+  publishedBy  String   @map("published_by")
+  isCurrent    Boolean  @default(false) @map("is_current")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("website_versions")
+}
+
+model ContactInquiry {
+  id            String   @id @default(uuid()) @db.Uuid
+  schoolId      String   @db.Uuid @map("school_id")
+  fullName      String   @map("full_name")
+  email         String
+  phone         String?
+  subject       String
+  message       String   @db.Text
+  status        String   @default("NEW") // NEW, READ, RESPONDED, ARCHIVED
+  responseNotes String?  @db.Text @map("response_notes")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@map("contact_inquiries")
+}
+
+model AnalyticsDaily {
+  id              String   @id @default(uuid()) @db.Uuid
+  schoolId        String   @db.Uuid @map("school_id")
+  date            DateTime
+  pageViews       Int      @default(0) @map("page_views")
+  uniqueVisitors  Int      @default(0) @map("unique_visitors")
+  bounceRate      Float    @default(0) @map("bounce_rate")
+  avgSessionSec   Int      @default(0) @map("avg_session_sec")
+  topPages        Json?    @map("top_pages")
+  trafficSources  Json?    @map("traffic_sources")
+  deviceBreakdown Json?    @map("device_breakdown")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, date])
+  @@index([schoolId])
+  @@map("analytics_daily")
+}
+
+model SchoolSettings {
+  id                      String   @id @default(uuid()) @db.Uuid
+  schoolId                String   @unique @db.Uuid @map("school_id")
+  contactEmail            String?  @map("contact_email")
+  supportPhone            String?  @map("support_phone")
+  timezone                String   @default("Asia/Dhaka")
+  dateFormat              String   @default("DD/MM/YYYY") @map("date_format")
+  language                String   @default("en")
+  allowPublicAdmission    Boolean  @default(true) @map("allow_public_admission")
+  maintenanceMode         Boolean  @default(false) @map("maintenance_mode")
+  securityConfig          Json?    @map("security_config")
+  notificationPreferences Json?    @map("notification_preferences")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  school                  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_settings")
 }
