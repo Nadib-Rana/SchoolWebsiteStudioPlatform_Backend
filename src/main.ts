@@ -13,13 +13,17 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>("app.port", 3000);
   const apiPrefix = configService.get<string>("app.apiPrefix", "api/v1");
-  const appName = configService.get<string>("app.name", "Nest Starter Template");
+  const appName = configService.get<string>(
+    "app.name",
+    "Nest Starter Template",
+  );
   const isProd = configService.get<string>("app.nodeEnv") === "production";
 
   // 1. Security Headers via Helmet
   app.use(
     helmet({
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
       contentSecurityPolicy: isProd ? undefined : false,
     }),
   );
@@ -29,9 +33,39 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: "50mb" }));
 
   // 3. CORS Setup
-  const corsOrigins = configService.get<string | string[]>("app.corsOrigins", "*");
+  const corsOriginsConfig = configService.get<string[] | string>(
+    "app.corsOrigins",
+  );
+  const configuredOrigins = Array.isArray(corsOriginsConfig)
+    ? corsOriginsConfig
+    : typeof corsOriginsConfig === "string" && corsOriginsConfig !== "*"
+      ? corsOriginsConfig.split(",").map((s) => s.trim())
+      : [];
+
+  const allowedOrigins = [
+    ...configuredOrigins,
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:4000",
+  ];
+
   app.enableCors({
-    origin: corsOrigins === "*" ? true : corsOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/localhost(:[0-9]+)?$/.test(origin) ||
+        /^http:\/\/127\.0\.0\.1(:[0-9]+)?$/.test(origin);
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+      }
+    },
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: [
@@ -98,7 +132,10 @@ async function bootstrap() {
       "swagger.description",
       "Production-ready NestJS RESTful API Starter Template",
     );
-    const swaggerVersion = configService.get<string>("swagger.version", "1.0.0");
+    const swaggerVersion = configService.get<string>(
+      "swagger.version",
+      "1.0.0",
+    );
 
     const swaggerConfig = new DocumentBuilder()
       .setTitle(swaggerTitle)
@@ -125,10 +162,19 @@ async function bootstrap() {
         },
         "bearer",
       )
-      .addTag("Authentication", "User registration, login, refresh token, OTP, and password reset")
+      .addTag(
+        "Authentication",
+        "User registration, login, refresh token, OTP, and password reset",
+      )
       .addTag("Users", "User profile and account administration")
-      .addTag("Posts", "Reference CRUD module with search, tags, pagination, and RBAC")
-      .addTag("Storage", "MinIO/S3 object storage, presigned upload/download URLs")
+      .addTag(
+        "Posts",
+        "Reference CRUD module with search, tags, pagination, and RBAC",
+      )
+      .addTag(
+        "Storage",
+        "MinIO/S3 object storage, presigned upload/download URLs",
+      )
       .addTag("Health", "System health and service connectivity probes")
       .addTag("General", "Core application metadata")
       .build();
@@ -142,14 +188,18 @@ async function bootstrap() {
       },
     });
 
-    logger.log(`📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`);
+    logger.log(
+      `📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`,
+    );
   }
 
   // 7. Enable Graceful Shutdown Hooks
   app.enableShutdownHooks();
 
   await app.listen(port);
-  logger.log(`🚀 ${appName} server running at: http://localhost:${port}/${apiPrefix}`);
+  logger.log(
+    `🚀 ${appName} server running at: http://localhost:${port}/${apiPrefix}`,
+  );
 }
 
 void bootstrap();

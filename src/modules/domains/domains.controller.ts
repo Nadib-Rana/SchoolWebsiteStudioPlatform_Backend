@@ -40,10 +40,7 @@ export class DomainsController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
   @ApiOperation({ summary: "Connect a new custom domain" })
   @ResponseMessage("Custom domain registered")
-  async addDomain(
-    @Param("id") id: string,
-    @Body() dto: CreateDomainDto,
-  ) {
+  async addDomain(@Param("id") id: string, @Body() dto: CreateDomainDto) {
     return this.domainsService.addDomain(id, dto);
   }
 

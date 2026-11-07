@@ -34,12 +34,11 @@ export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
 
   @Get()
-  @ApiOperation({ summary: "List school teachers with search and department filtering" })
+  @ApiOperation({
+    summary: "List school teachers with search and department filtering",
+  })
   @ResponseMessage("Teachers retrieved successfully")
-  async getTeachers(
-    @Param("id") id: string,
-    @Query() query: TeacherQueryDto,
-  ) {
+  async getTeachers(@Param("id") id: string, @Query() query: TeacherQueryDto) {
     return this.teachersService.getTeachers(id, query);
   }
 
@@ -59,10 +58,7 @@ export class TeachersController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Create teacher profile" })
   @ResponseMessage("Teacher created successfully")
-  async createTeacher(
-    @Param("id") id: string,
-    @Body() dto: CreateTeacherDto,
-  ) {
+  async createTeacher(@Param("id") id: string, @Body() dto: CreateTeacherDto) {
     return this.teachersService.createTeacher(id, dto);
   }
 

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Patch, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { ContentService } from "./content.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -24,7 +17,9 @@ export class ContentController {
   constructor(private readonly contentService: ContentService) {}
 
   @Get()
-  @ApiOperation({ summary: "Get all 8 school content sections and completion status" })
+  @ApiOperation({
+    summary: "Get all 8 school content sections and completion status",
+  })
   @ResponseMessage("School content retrieved successfully")
   async getContent(@Param("id") id: string) {
     return this.contentService.getContent(id);
@@ -32,13 +27,15 @@ export class ContentController {
 
   @Patch()
   @UseGuards(SchoolRolesGuard)
-  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR, SchoolRole.CONTENT_MANAGER)
+  @SchoolRoles(
+    SchoolRole.OWNER,
+    SchoolRole.ADMIN,
+    SchoolRole.EDITOR,
+    SchoolRole.CONTENT_MANAGER,
+  )
   @ApiOperation({ summary: "Update school content sections and details" })
   @ResponseMessage("School content updated successfully")
-  async updateContent(
-    @Param("id") id: string,
-    @Body() dto: UpdateContentDto,
-  ) {
+  async updateContent(@Param("id") id: string, @Body() dto: UpdateContentDto) {
     return this.contentService.updateContent(id, dto);
   }
 }

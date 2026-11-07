@@ -45,8 +45,32 @@ export class StorageService implements OnModuleInit {
             "us-east-1",
           );
           await this.minioClient.makeBucket(this.defaultBucket, region);
-          this.logger.log(`Created default storage bucket: ${this.defaultBucket}`);
+          this.logger.log(
+            `Created default storage bucket: ${this.defaultBucket}`,
+          );
         }
+
+        // Allow public read access so browser clients can directly display images/media
+        try {
+          const publicReadPolicy = {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: { AWS: ["*"] },
+                Action: ["s3:GetObject"],
+                Resource: [`arn:aws:s3:::${this.defaultBucket}/*`],
+              },
+            ],
+          };
+          await this.minioClient.setBucketPolicy(
+            this.defaultBucket,
+            JSON.stringify(publicReadPolicy),
+          );
+        } catch {
+          // If already set or provider restricts policy modification, ignore
+        }
+
         this.logger.log("✅ Object storage (MinIO/S3) configured successfully");
       } catch (err) {
         this.logger.warn(
@@ -80,7 +104,11 @@ export class StorageService implements OnModuleInit {
     const publicUrl = this.configService.get<string>("storage.publicUrl", "");
     const b = bucket || this.defaultBucket;
     if (publicUrl) {
-      return `${publicUrl.replace(/\/$/, "")}/${b}/${key.replace(/^\//, "")}`;
+      const cleanUrl = publicUrl.replace(/\/$/, "");
+      if (cleanUrl.endsWith(`/${b}`)) {
+        return `${cleanUrl}/${key.replace(/^\//, "")}`;
+      }
+      return `${cleanUrl}/${b}/${key.replace(/^\//, "")}`;
     }
     return key;
   }

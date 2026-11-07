@@ -34,7 +34,9 @@ export class UsersController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ summary: "Get paginated users list with search & filters (Admin only)" })
+  @ApiOperation({
+    summary: "Get paginated users list with search & filters (Admin only)",
+  })
   @ResponseMessage("Users retrieved successfully")
   async findAll(@Query() query: UserQueryDto) {
     return this.usersService.findAll(query);

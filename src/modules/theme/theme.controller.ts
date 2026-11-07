@@ -38,10 +38,7 @@ export class ThemeController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Save draft theme and customizer properties" })
   @ResponseMessage("Draft theme saved successfully")
-  async saveDraft(
-    @Param("id") id: string,
-    @Body() dto: UpdateThemeDraftDto,
-  ) {
+  async saveDraft(@Param("id") id: string, @Body() dto: UpdateThemeDraftDto) {
     return this.themeService.saveDraft(id, dto);
   }
 
@@ -49,7 +46,9 @@ export class ThemeController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(SchoolRolesGuard)
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
-  @ApiOperation({ summary: "Publish draft theme configuration to live website" })
+  @ApiOperation({
+    summary: "Publish draft theme configuration to live website",
+  })
   @ResponseMessage("Theme published to live site successfully")
   async publishTheme(@Param("id") id: string) {
     return this.themeService.publishTheme(id);

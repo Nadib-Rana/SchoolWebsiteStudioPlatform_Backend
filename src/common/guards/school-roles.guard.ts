@@ -25,7 +25,9 @@ export class SchoolRolesGuard implements CanActivate {
     const { schoolMember } = context.switchToHttp().getRequest();
 
     if (!schoolMember || !schoolMember.role) {
-      throw new ForbiddenException("Access denied: No school membership role found");
+      throw new ForbiddenException(
+        "Access denied: No school membership role found",
+      );
     }
 
     // OWNER has full access to all school resources

@@ -7,9 +7,15 @@ export class ContentService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getContent(schoolId: string) {
-    const profile = await this.prisma.schoolProfile.findUnique({
-      where: { schoolId },
-    });
+    const [school, profile] = await Promise.all([
+      this.prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { id: true, name: true, slug: true, logoUrl: true },
+      }),
+      this.prisma.schoolProfile.findUnique({
+        where: { schoolId },
+      }),
+    ]);
 
     if (!profile) {
       throw new NotFoundException("School profile not found");
@@ -17,11 +23,24 @@ export class ContentService {
 
     // Calculate completion percentages matching frontend contentItems
     const hasInfo = Boolean(profile.address && profile.phone && profile.email);
-    const hasAbout = Boolean(profile.motto && profile.visionStatement && profile.missionStatement);
-    const hasPrincipal = Boolean(profile.principalName && profile.principalBio);
-    const hasAcademicInfo = Boolean((profile.academics as any)?.programs?.length);
-    const hasFacilities = Boolean((profile.academics as any)?.facilities?.length);
-    const hasStats = Boolean((profile.stats as any)?.studentsCount);
+    const hasAbout = Boolean(
+      profile.motto &&
+      (profile.visionStatement || (profile as any).vision) &&
+      (profile.missionStatement || (profile as any).mission),
+    );
+    const hasPrincipal = Boolean(
+      profile.principalName &&
+      (profile.principalBio || (profile as any).principalMessage),
+    );
+    const hasAcademicInfo = Boolean(
+      (profile.academics as any)?.programs?.length,
+    );
+    const hasFacilities = Boolean(
+      (profile.academics as any)?.facilities?.length,
+    );
+    const hasStats = Boolean(
+      (profile.stats as any)?.studentsCount || (profile as any).statistics,
+    );
 
     const completionItems = [
       {
@@ -75,12 +94,34 @@ export class ContentService {
     ];
 
     return {
+      school,
       profile,
       completionItems,
     };
   }
 
   async updateContent(schoolId: string, dto: UpdateContentDto) {
+    const {
+      establishedYear,
+      schoolName,
+      schoolCode,
+      schoolType,
+      ...profileData
+    } = dto;
+    const established = dto.established ?? establishedYear;
+
+    if (schoolName) {
+      await this.prisma.school.update({
+        where: { id: schoolId },
+        data: { name: schoolName },
+      });
+    }
+
+    const dataToSave = {
+      ...profileData,
+      ...(established !== undefined ? { established } : {}),
+    };
+
     const existing = await this.prisma.schoolProfile.findUnique({
       where: { schoolId },
     });
@@ -89,14 +130,14 @@ export class ContentService {
       return this.prisma.schoolProfile.create({
         data: {
           schoolId,
-          ...dto,
+          ...dataToSave,
         },
       });
     }
 
     return this.prisma.schoolProfile.update({
       where: { schoolId },
-      data: dto,
+      data: dataToSave,
     });
   }
 }

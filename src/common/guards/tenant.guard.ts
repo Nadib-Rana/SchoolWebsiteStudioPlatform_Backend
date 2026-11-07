@@ -39,13 +39,13 @@ export class TenantGuard implements CanActivate {
     }
 
     // 3. Find the school
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(schoolId);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        schoolId,
+      );
     const school = await this.prisma.school.findFirst({
       where: {
-        OR: [
-          { slug: schoolId },
-          ...(isUuid ? [{ id: schoolId }] : []),
-        ],
+        OR: [{ slug: schoolId }, ...(isUuid ? [{ id: schoolId }] : [])],
         deletedAt: null,
       },
     });
@@ -55,6 +55,10 @@ export class TenantGuard implements CanActivate {
     }
 
     req.school = school;
+    if (req.params) {
+      if (req.params.id) req.params.id = school.id;
+      if (req.params.schoolId) req.params.schoolId = school.id;
+    }
 
     // 4. If user is authenticated, check membership & permission
     if (user?.id) {

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Patch, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { SeoService } from "./seo.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -33,12 +26,11 @@ export class SeoController {
   @Patch()
   @UseGuards(SchoolRolesGuard)
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
-  @ApiOperation({ summary: "Update SEO configuration and search preview metadata" })
+  @ApiOperation({
+    summary: "Update SEO configuration and search preview metadata",
+  })
   @ResponseMessage("SEO configuration updated successfully")
-  async updateSeoConfig(
-    @Param("id") id: string,
-    @Body() dto: UpdateSeoDto,
-  ) {
+  async updateSeoConfig(@Param("id") id: string, @Body() dto: UpdateSeoDto) {
     return this.seoService.updateSeoConfig(id, dto);
   }
 }

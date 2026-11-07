@@ -51,10 +51,7 @@ export class IntegrationsController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
   @ApiOperation({ summary: "Trigger manual data synchronization" })
   @ResponseMessage("Synchronization completed successfully")
-  async triggerSync(
-    @Param("id") id: string,
-    @Param("type") type: string,
-  ) {
+  async triggerSync(@Param("id") id: string, @Param("type") type: string) {
     return this.integrationsService.triggerSync(id, type);
   }
 }

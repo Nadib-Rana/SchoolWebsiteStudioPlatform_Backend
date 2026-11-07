@@ -6,4 +6,3 @@ export * from "./pagination-params.decorator";
 export * from "./current-school.decorator";
 export * from "./current-member.decorator";
 export * from "./school-roles.decorator";
-

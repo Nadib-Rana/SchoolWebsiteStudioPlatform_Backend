@@ -35,7 +35,9 @@ export class GalleryController {
   constructor(private readonly galleryService: GalleryService) {}
 
   @Get()
-  @ApiOperation({ summary: "Get gallery overview, storage meter and albums list" })
+  @ApiOperation({
+    summary: "Get gallery overview, storage meter and albums list",
+  })
   @ResponseMessage("Gallery overview retrieved")
   async getGalleryOverview(@Param("id") id: string) {
     return this.galleryService.getGalleryOverview(id);
@@ -54,10 +56,7 @@ export class GalleryController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Create a new photo album" })
   @ResponseMessage("Album created successfully")
-  async createAlbum(
-    @Param("id") id: string,
-    @Body() dto: CreateAlbumDto,
-  ) {
+  async createAlbum(@Param("id") id: string, @Body() dto: CreateAlbumDto) {
     return this.galleryService.createAlbum(id, dto);
   }
 

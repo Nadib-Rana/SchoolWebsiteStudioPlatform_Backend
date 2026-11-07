@@ -46,14 +46,14 @@ export class SchoolsService {
   }
 
   async getSchoolById(schoolId: string) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(schoolId);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        schoolId,
+      );
 
     const school = await this.prisma.school.findFirst({
       where: {
-        OR: [
-          { slug: schoolId },
-          ...(isUuid ? [{ id: schoolId }] : []),
-        ],
+        OR: [{ slug: schoolId }, ...(isUuid ? [{ id: schoolId }] : [])],
         deletedAt: null,
       },
       include: {
@@ -312,14 +312,62 @@ export class SchoolsService {
     // Initialize Standard Pages
     const standardPages = [
       { slug: "home", title: "Home", navLabel: "Home", isHome: true, order: 1 },
-      { slug: "about", title: "About Us", navLabel: "About", isHome: false, order: 2 },
-      { slug: "academics", title: "Academics", navLabel: "Academics", isHome: false, order: 3 },
-      { slug: "admissions", title: "Admissions", navLabel: "Admissions", isHome: false, order: 4 },
-      { slug: "teachers", title: "Teachers", navLabel: "Faculty", isHome: false, order: 5 },
-      { slug: "notices", title: "Notices", navLabel: "Notices", isHome: false, order: 6 },
-      { slug: "events", title: "Events", navLabel: "Events", isHome: false, order: 7 },
-      { slug: "gallery", title: "Gallery", navLabel: "Gallery", isHome: false, order: 8 },
-      { slug: "contact", title: "Contact Us", navLabel: "Contact", isHome: false, order: 9 },
+      {
+        slug: "about",
+        title: "About Us",
+        navLabel: "About",
+        isHome: false,
+        order: 2,
+      },
+      {
+        slug: "academics",
+        title: "Academics",
+        navLabel: "Academics",
+        isHome: false,
+        order: 3,
+      },
+      {
+        slug: "admissions",
+        title: "Admissions",
+        navLabel: "Admissions",
+        isHome: false,
+        order: 4,
+      },
+      {
+        slug: "teachers",
+        title: "Teachers",
+        navLabel: "Faculty",
+        isHome: false,
+        order: 5,
+      },
+      {
+        slug: "notices",
+        title: "Notices",
+        navLabel: "Notices",
+        isHome: false,
+        order: 6,
+      },
+      {
+        slug: "events",
+        title: "Events",
+        navLabel: "Events",
+        isHome: false,
+        order: 7,
+      },
+      {
+        slug: "gallery",
+        title: "Gallery",
+        navLabel: "Gallery",
+        isHome: false,
+        order: 8,
+      },
+      {
+        slug: "contact",
+        title: "Contact Us",
+        navLabel: "Contact",
+        isHome: false,
+        order: 9,
+      },
     ];
 
     for (const p of standardPages) {
@@ -442,9 +490,13 @@ export class SchoolsService {
       where: { id: schoolId },
       data: {
         ...(dto.name ? { name: dto.name } : {}),
-        ...(dto.customDomain !== undefined ? { customDomain: dto.customDomain } : {}),
+        ...(dto.customDomain !== undefined
+          ? { customDomain: dto.customDomain }
+          : {}),
         ...(dto.logoUrl !== undefined ? { logoUrl: dto.logoUrl } : {}),
-        ...(dto.isPublished !== undefined ? { isPublished: dto.isPublished } : {}),
+        ...(dto.isPublished !== undefined
+          ? { isPublished: dto.isPublished }
+          : {}),
         ...(dto.status ? { status: dto.status } : {}),
       },
     });
@@ -475,7 +527,9 @@ export class SchoolsService {
     });
 
     if (!user) {
-      throw new NotFoundException("User with this email not found on the platform");
+      throw new NotFoundException(
+        "User with this email not found on the platform",
+      );
     }
 
     const existingMember = await this.prisma.schoolMember.findUnique({
@@ -525,7 +579,9 @@ export class SchoolsService {
         where: { schoolId, role: SchoolRole.OWNER },
       });
       if (ownerCount <= 1) {
-        throw new BadRequestException("Cannot remove the only owner of the school");
+        throw new BadRequestException(
+          "Cannot remove the only owner of the school",
+        );
       }
     }
 

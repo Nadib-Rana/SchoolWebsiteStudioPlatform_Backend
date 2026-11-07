@@ -5,7 +5,6 @@ import {
   IsEnum,
   IsEmail,
   IsBoolean,
-  IsObject,
   IsArray,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -116,7 +115,16 @@ export class OnboardingDto {
   @IsOptional()
   contactPhone?: string;
 
-  @ApiPropertyOptional({ example: ["home", "about", "academics", "admissions", "teachers", "contact"] })
+  @ApiPropertyOptional({
+    example: [
+      "home",
+      "about",
+      "academics",
+      "admissions",
+      "teachers",
+      "contact",
+    ],
+  })
   @IsArray()
   @IsOptional()
   selectedPages?: string[];

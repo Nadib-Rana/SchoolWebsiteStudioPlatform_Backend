@@ -20,17 +20,39 @@ export class AnalyticsService {
     const latest = records[records.length - 1] || null;
 
     // Aggregate numbers
-    const totalViews = records.reduce((acc, r) => acc + r.pageViews, 0) || 34291;
-    const totalVisitors = records.reduce((acc, r) => acc + r.uniqueVisitors, 0) || 12842;
+    const totalViews =
+      records.reduce((acc, r) => acc + r.pageViews, 0) || 34291;
+    const totalVisitors =
+      records.reduce((acc, r) => acc + r.uniqueVisitors, 0) || 12842;
     const avgBounceRate = latest?.bounceRate || 28.4;
     const avgDuration = latest?.avgSessionSec || 215;
 
     const topPages = (latest?.topPages as any[]) || [
       { path: "/", title: "Homepage", views: 14200, percentage: 41.4 },
-      { path: "/admissions", title: "Admissions & Apply", views: 7600, percentage: 22.1 },
-      { path: "/academics", title: "Academic Programs", views: 4800, percentage: 14.0 },
-      { path: "/teachers", title: "Faculty Directory", views: 3200, percentage: 9.3 },
-      { path: "/notices", title: "Notices & Announcements", views: 2450, percentage: 7.1 },
+      {
+        path: "/admissions",
+        title: "Admissions & Apply",
+        views: 7600,
+        percentage: 22.1,
+      },
+      {
+        path: "/academics",
+        title: "Academic Programs",
+        views: 4800,
+        percentage: 14.0,
+      },
+      {
+        path: "/teachers",
+        title: "Faculty Directory",
+        views: 3200,
+        percentage: 9.3,
+      },
+      {
+        path: "/notices",
+        title: "Notices & Announcements",
+        views: 2450,
+        percentage: 7.1,
+      },
     ];
 
     const trafficSources = (latest?.trafficSources as any[]) || [

@@ -96,14 +96,22 @@ export class EventsService {
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
         ...(dto.category !== undefined ? { category: dto.category } : {}),
-        ...(dto.eventDate !== undefined ? { eventDate: new Date(dto.eventDate) } : {}),
-        ...(dto.endDate !== undefined ? { endDate: dto.endDate ? new Date(dto.endDate) : null } : {}),
+        ...(dto.eventDate !== undefined
+          ? { eventDate: new Date(dto.eventDate) }
+          : {}),
+        ...(dto.endDate !== undefined
+          ? { endDate: dto.endDate ? new Date(dto.endDate) : null }
+          : {}),
         ...(dto.time !== undefined ? { time: dto.time } : {}),
         ...(dto.venue !== undefined ? { venue: dto.venue } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
         ...(dto.bannerUrl !== undefined ? { bannerUrl: dto.bannerUrl } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.registrationUrl !== undefined ? { registrationUrl: dto.registrationUrl } : {}),
+        ...(dto.registrationUrl !== undefined
+          ? { registrationUrl: dto.registrationUrl }
+          : {}),
       },
     });
   }

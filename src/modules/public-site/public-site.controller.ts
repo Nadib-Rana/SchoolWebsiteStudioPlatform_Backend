@@ -34,12 +34,11 @@ export class PublicSiteController {
 
   @Public()
   @Get("public/site")
-  @ApiOperation({ summary: "Get complete public school website data by slug or domain" })
+  @ApiOperation({
+    summary: "Get complete public school website data by slug or domain",
+  })
   @ResponseMessage("Public site data loaded successfully")
-  async getPublicSite(
-    @Query("slug") slug?: string,
-    @Req() req?: Request,
-  ) {
+  async getPublicSite(@Query("slug") slug?: string, @Req() req?: Request) {
     // If slug query provided, use it; otherwise fallback to hostname header
     const identifier = slug || req?.hostname || "northfield-high";
     return this.publicSiteService.getPublicSite(identifier);
@@ -48,10 +47,56 @@ export class PublicSiteController {
   @Public()
   @Post("public/inquiries")
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: "Submit public contact inquiry or admission question" })
+  @ApiOperation({
+    summary: "Submit public contact inquiry or admission question",
+  })
   @ResponseMessage("Inquiry submitted successfully. We will be in touch soon.")
   async createInquiry(@Body() dto: ContactInquiryDto) {
     return this.publicSiteService.createInquiry(dto);
+  }
+
+  @Public()
+  @Get("public/:slug/notices/:noticeId")
+  @ApiOperation({ summary: "Get single published notice" })
+  @ResponseMessage("Notice retrieved successfully")
+  async getPublicNotice(
+    @Param("slug") slug: string,
+    @Param("noticeId", ParseUUIDPipe) noticeId: string,
+  ) {
+    return this.publicSiteService.getPublicNotice(slug, noticeId);
+  }
+
+  @Public()
+  @Get("public/:slug/events/:eventId")
+  @ApiOperation({ summary: "Get single published event" })
+  @ResponseMessage("Event retrieved successfully")
+  async getPublicEvent(
+    @Param("slug") slug: string,
+    @Param("eventId", ParseUUIDPipe) eventId: string,
+  ) {
+    return this.publicSiteService.getPublicEvent(slug, eventId);
+  }
+
+  @Public()
+  @Get("public/:slug/teachers/:teacherId")
+  @ApiOperation({ summary: "Get single active teacher" })
+  @ResponseMessage("Teacher retrieved successfully")
+  async getPublicTeacher(
+    @Param("slug") slug: string,
+    @Param("teacherId", ParseUUIDPipe) teacherId: string,
+  ) {
+    return this.publicSiteService.getPublicTeacher(slug, teacherId);
+  }
+
+  @Public()
+  @Get("public/:slug/albums/:albumId")
+  @ApiOperation({ summary: "Get single gallery album with photos" })
+  @ResponseMessage("Album retrieved successfully")
+  async getPublicAlbum(
+    @Param("slug") slug: string,
+    @Param("albumId") albumId: string,
+  ) {
+    return this.publicSiteService.getPublicAlbum(slug, albumId);
   }
 
   // --- Studio Inquiries Management (Authenticated) ---

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Put, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { NavigationService } from "./navigation.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -35,10 +28,7 @@ export class NavigationController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Update menu items and order" })
   @ResponseMessage("Navigation menu saved successfully")
-  async updateMenu(
-    @Param("id") id: string,
-    @Body() dto: UpdateNavigationDto,
-  ) {
+  async updateMenu(@Param("id") id: string, @Body() dto: UpdateNavigationDto) {
     return this.navigationService.updateMenu(id, dto);
   }
 }

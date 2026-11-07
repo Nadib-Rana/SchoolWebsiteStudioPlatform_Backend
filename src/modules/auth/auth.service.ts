@@ -49,7 +49,8 @@ export class AuthService {
         "jwt.secret",
         "default_super_secret_jwt_key_change_in_production_12345",
       ),
-      expiresIn: (this.configService.get<string>("jwt.expiresIn") || "15m") as any,
+      expiresIn: (this.configService.get<string>("jwt.expiresIn") ||
+        "15m") as any,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
@@ -57,7 +58,8 @@ export class AuthService {
         "jwt.refreshSecret",
         "default_super_secret_jwt_refresh_key_change_in_production_12345",
       ),
-      expiresIn: (this.configService.get<string>("jwt.refreshExpiresIn") || "7d") as any,
+      expiresIn: (this.configService.get<string>("jwt.refreshExpiresIn") ||
+        "7d") as any,
     });
 
     return { accessToken, refreshToken };
@@ -152,10 +154,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: identifier },
-          { username: dto.identifier.trim() },
-        ],
+        OR: [{ email: identifier }, { username: dto.identifier.trim() }],
       },
     });
 
@@ -246,7 +245,9 @@ export class AuthService {
       });
 
       if (!user || user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException("Invalid refresh token or inactive account");
+        throw new UnauthorizedException(
+          "Invalid refresh token or inactive account",
+        );
       }
 
       // Generate new tokens
@@ -425,7 +426,9 @@ export class AuthService {
       }),
     ]);
 
-    return { message: "Password has been successfully reset. You can now login." };
+    return {
+      message: "Password has been successfully reset. You can now login.",
+    };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {

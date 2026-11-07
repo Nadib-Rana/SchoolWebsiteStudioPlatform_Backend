@@ -14,9 +14,12 @@ import { PublishStatus } from "@prisma/client";
 export class PublicSiteService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getPublicSite(identifier: string) {
+  async resolvePublishedSchool(identifier: string) {
     const trimmed = identifier.toLowerCase().trim();
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        trimmed,
+      );
 
     const school = await this.prisma.school.findFirst({
       where: {
@@ -44,6 +47,12 @@ export class PublicSiteService {
         "This school website is currently unpublished or in maintenance mode.",
       );
     }
+
+    return school;
+  }
+
+  async getPublicSite(identifier: string) {
+    const school = await this.resolvePublishedSchool(identifier);
 
     // Fetch published resources concurrently
     const [pages, teachers, notices, events, albums, menu] = await Promise.all([
@@ -73,7 +82,7 @@ export class PublicSiteService {
           status: PublishStatus.PUBLISHED,
         },
         orderBy: [{ isPinned: "desc" }, { publishDate: "desc" }],
-        take: 10,
+        take: 50,
       }),
       this.prisma.schoolEvent.findMany({
         where: {
@@ -81,18 +90,18 @@ export class PublicSiteService {
           status: PublishStatus.PUBLISHED,
         },
         orderBy: { eventDate: "asc" },
-        take: 10,
+        take: 50,
       }),
       this.prisma.galleryAlbum.findMany({
         where: { schoolId: school.id },
         include: {
           photos: {
-            take: 8,
             orderBy: { order: "asc" },
+            take: 50,
           },
         },
         orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-        take: 6,
+        take: 20,
       }),
       this.prisma.navigationMenu.findFirst({
         where: { schoolId: school.id, location: "HEADER" },
@@ -136,6 +145,7 @@ export class PublicSiteService {
       profile: school.profile,
       theme: school.themeConfig,
       seo: school.seoConfig,
+      settings: school.settings,
       navigation: menu?.items || [],
       pages,
       teachers,
@@ -147,14 +157,14 @@ export class PublicSiteService {
 
   async createInquiry(dto: ContactInquiryDto) {
     const trimmed = dto.schoolSlug.toLowerCase().trim();
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        trimmed,
+      );
 
     const school = await this.prisma.school.findFirst({
       where: {
-        OR: [
-          { slug: trimmed },
-          ...(isUuid ? [{ id: trimmed }] : []),
-        ],
+        OR: [{ slug: trimmed }, ...(isUuid ? [{ id: trimmed }] : [])],
       },
     });
 
@@ -204,5 +214,68 @@ export class PublicSiteService {
           : {}),
       },
     });
+  }
+
+  async getPublicNotice(identifier: string, noticeId: string) {
+    const school = await this.resolvePublishedSchool(identifier);
+    const notice = await this.prisma.notice.findFirst({
+      where: {
+        id: noticeId,
+        schoolId: school.id,
+        status: PublishStatus.PUBLISHED,
+      },
+    });
+    if (!notice) throw new NotFoundException("Notice not found");
+    return notice;
+  }
+
+  async getPublicEvent(identifier: string, eventId: string) {
+    const school = await this.resolvePublishedSchool(identifier);
+    const event = await this.prisma.schoolEvent.findFirst({
+      where: {
+        id: eventId,
+        schoolId: school.id,
+        status: PublishStatus.PUBLISHED,
+      },
+    });
+    if (!event) throw new NotFoundException("Event not found");
+    return event;
+  }
+
+  async getPublicTeacher(identifier: string, teacherId: string) {
+    const school = await this.resolvePublishedSchool(identifier);
+    const teacher = await this.prisma.teacher.findFirst({
+      where: {
+        id: teacherId,
+        schoolId: school.id,
+        status: "ACTIVE",
+      },
+    });
+    if (!teacher) throw new NotFoundException("Teacher not found");
+    return teacher;
+  }
+
+  async getPublicAlbum(identifier: string, albumIdOrSlug: string) {
+    const school = await this.resolvePublishedSchool(identifier);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        albumIdOrSlug,
+      );
+    const album = await this.prisma.galleryAlbum.findFirst({
+      where: {
+        schoolId: school.id,
+        OR: [
+          { slug: albumIdOrSlug },
+          ...(isUuid ? [{ id: albumIdOrSlug }] : []),
+        ],
+      },
+      include: {
+        photos: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+    if (!album) throw new NotFoundException("Album not found");
+    return album;
   }
 }

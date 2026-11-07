@@ -39,10 +39,7 @@ export class PagesController {
   @Get()
   @ApiOperation({ summary: "List school pages with filtering and search" })
   @ResponseMessage("Pages retrieved successfully")
-  async getPages(
-    @Param("id") id: string,
-    @Query() query: PageQueryDto,
-  ) {
+  async getPages(@Param("id") id: string, @Query() query: PageQueryDto) {
     return this.pagesService.getPages(id, query);
   }
 
@@ -52,10 +49,7 @@ export class PagesController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Create a new page" })
   @ResponseMessage("Page created successfully")
-  async createPage(
-    @Param("id") id: string,
-    @Body() dto: CreatePageDto,
-  ) {
+  async createPage(@Param("id") id: string, @Body() dto: CreatePageDto) {
     return this.pagesService.createPage(id, dto);
   }
 

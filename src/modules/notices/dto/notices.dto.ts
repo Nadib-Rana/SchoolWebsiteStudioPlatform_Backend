@@ -56,7 +56,9 @@ export class CreateNoticeDto {
   @IsOptional()
   category?: string;
 
-  @ApiProperty({ example: "During summer recess, administrative offices will operate..." })
+  @ApiProperty({
+    example: "During summer recess, administrative offices will operate...",
+  })
   @IsString()
   @IsNotEmpty()
   description: string;
@@ -76,7 +78,10 @@ export class CreateNoticeDto {
   @IsOptional()
   priority?: string;
 
-  @ApiPropertyOptional({ enum: PublishStatus, default: PublishStatus.PUBLISHED })
+  @ApiPropertyOptional({
+    enum: PublishStatus,
+    default: PublishStatus.PUBLISHED,
+  })
   @IsEnum(PublishStatus)
   @IsOptional()
   status?: PublishStatus;

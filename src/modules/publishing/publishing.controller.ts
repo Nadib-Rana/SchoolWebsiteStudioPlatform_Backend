@@ -27,7 +27,9 @@ export class PublishingController {
   constructor(private readonly publishingService: PublishingService) {}
 
   @Get("status")
-  @ApiOperation({ summary: "Get publishing readiness, staged changes and version history" })
+  @ApiOperation({
+    summary: "Get publishing readiness, staged changes and version history",
+  })
   @ResponseMessage("Publishing status retrieved successfully")
   async getPublishingStatus(@Param("id") id: string) {
     return this.publishingService.getPublishingStatus(id);
@@ -37,7 +39,9 @@ export class PublishingController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(SchoolRolesGuard)
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
-  @ApiOperation({ summary: "Publish staged changes and create new website version snapshot" })
+  @ApiOperation({
+    summary: "Publish staged changes and create new website version snapshot",
+  })
   @ResponseMessage("New website version published successfully")
   async releaseVersion(
     @Param("id") id: string,

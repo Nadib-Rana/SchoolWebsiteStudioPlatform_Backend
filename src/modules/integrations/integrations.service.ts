@@ -95,10 +95,24 @@ export class IntegrationsService {
       throw new NotFoundException(`Integration '${type}' not found`);
     }
 
+    let detail = "Sync executed successfully. All records up to date.";
+    if (type === "ADMISSION_GATEWAY") {
+      const appCount = await this.prisma.admissionApplication.count({
+        where: { schoolId },
+      });
+      detail = `${appCount} student application record(s) verified and synchronized with gateway.`;
+    } else if (type === "SCHOOL_ERP") {
+      const [teacherCount, noticeCount] = await Promise.all([
+        this.prisma.teacher.count({ where: { schoolId } }),
+        this.prisma.notice.count({ where: { schoolId } }),
+      ]);
+      detail = `${teacherCount} faculty profiles and ${noticeCount} institutional bulletins verified against ERP registry.`;
+    }
+
     const newHistory = [
       {
         action: `${integration.name} manual sync`,
-        detail: "Sync executed successfully. All records up to date.",
+        detail,
         timestamp: "Just now",
         status: "SUCCESS",
       },

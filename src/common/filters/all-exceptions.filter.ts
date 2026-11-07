@@ -49,7 +49,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = typeof res === "string" ? res : res.message || message;
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
+      this.logger.error(
+        `Unhandled exception: ${exception.message}`,
+        exception.stack,
+      );
     }
 
     const responseBody: ApiErrorResponseDto = {

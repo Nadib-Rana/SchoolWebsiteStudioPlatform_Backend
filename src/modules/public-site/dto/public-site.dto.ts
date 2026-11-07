@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEmail,
-  IsOptional,
-} from "class-validator";
+import { IsString, IsNotEmpty, IsEmail, IsOptional } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ContactInquiryDto {
@@ -31,7 +26,10 @@ export class ContactInquiryDto {
   @IsNotEmpty()
   subject: string;
 
-  @ApiProperty({ example: "I would like to inquire about the application deadlines and tuition for the upcoming fall semester." })
+  @ApiProperty({
+    example:
+      "I would like to inquire about the application deadlines and tuition for the upcoming fall semester.",
+  })
   @IsString()
   @IsNotEmpty()
   message: string;
@@ -43,7 +41,9 @@ export class UpdateInquiryStatusDto {
   @IsNotEmpty()
   status: string;
 
-  @ApiPropertyOptional({ example: "Replied via email with prospectus brochure." })
+  @ApiPropertyOptional({
+    example: "Replied via email with prospectus brochure.",
+  })
   @IsString()
   @IsOptional()
   responseNotes?: string;

@@ -7,7 +7,9 @@ export class ReleaseVersionDto {
   @IsNotEmpty()
   versionTag: string;
 
-  @ApiProperty({ example: "Updated faculty profiles and spring admissions schedule" })
+  @ApiProperty({
+    example: "Updated faculty profiles and spring admissions schedule",
+  })
   @IsString()
   @IsNotEmpty()
   summary: string;

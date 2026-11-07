@@ -19,7 +19,9 @@ export class CreatePostDto {
   @IsString()
   slug?: string;
 
-  @ApiPropertyOptional({ example: "A beginner's guide to building REST APIs with NestJS." })
+  @ApiPropertyOptional({
+    example: "A beginner's guide to building REST APIs with NestJS.",
+  })
   @IsOptional()
   @IsString()
   summary?: string;
@@ -90,7 +92,10 @@ export class PostQueryDto extends PaginationQueryDto {
   @IsString()
   tag?: string;
 
-  @ApiPropertyOptional({ example: true, description: "Filter by published status" })
+  @ApiPropertyOptional({
+    example: true,
+    description: "Filter by published status",
+  })
   @IsOptional()
   @IsBoolean()
   published?: boolean;

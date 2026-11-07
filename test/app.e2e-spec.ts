@@ -67,7 +67,9 @@ describe("Starter Template E2E (Route Wiring)", () => {
     const reflector = app.get(Reflector);
     const contextService = app.get(ContextService);
 
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalInterceptors(
       new ResponseStandardizationInterceptor(contextService, reflector),
     );

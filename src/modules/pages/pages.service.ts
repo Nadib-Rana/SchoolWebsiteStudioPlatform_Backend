@@ -92,7 +92,9 @@ export class PagesService {
     });
 
     if (existing) {
-      throw new ConflictException("A page with this slug already exists for this school");
+      throw new ConflictException(
+        "A page with this slug already exists for this school",
+      );
     }
 
     return this.prisma.webPage.create({
@@ -140,8 +142,12 @@ export class PagesService {
         ...(dto.order !== undefined ? { order: dto.order } : {}),
         ...(dto.status ? { status: dto.status } : {}),
         ...(dto.metaTitle !== undefined ? { metaTitle: dto.metaTitle } : {}),
-        ...(dto.metaDescription !== undefined ? { metaDescription: dto.metaDescription } : {}),
-        ...(dto.featuredImage !== undefined ? { featuredImage: dto.featuredImage } : {}),
+        ...(dto.metaDescription !== undefined
+          ? { metaDescription: dto.metaDescription }
+          : {}),
+        ...(dto.featuredImage !== undefined
+          ? { featuredImage: dto.featuredImage }
+          : {}),
       },
       include: {
         sections: {

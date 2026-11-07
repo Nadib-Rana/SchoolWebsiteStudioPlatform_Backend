@@ -11,21 +11,15 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { SchoolsService } from "./schools.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { TenantGuard } from "../../common/guards/tenant.guard";
 import { SchoolRolesGuard } from "../../common/guards/school-roles.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { CurrentSchool } from "../../common/decorators/current-school.decorator";
 import { SchoolRoles } from "../../common/decorators/school-roles.decorator";
 import { ResponseMessage } from "../../common/decorators/response-message.decorator";
-import { SchoolRole, School } from "@prisma/client";
+import { SchoolRole } from "@prisma/client";
 import {
   CreateSchoolDto,
   UpdateSchoolDto,
@@ -49,7 +43,9 @@ export class SchoolsController {
 
   @Post("onboarding")
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: "Create and provision new school via onboarding wizard" })
+  @ApiOperation({
+    summary: "Create and provision new school via onboarding wizard",
+  })
   @ResponseMessage("School onboarded and provisioned successfully")
   async onboarding(
     @CurrentUser("id") userId: string,
@@ -79,7 +75,9 @@ export class SchoolsController {
 
   @Get(":id/overview")
   @UseGuards(TenantGuard)
-  @ApiOperation({ summary: "Get studio dashboard overview metrics, activities and stats" })
+  @ApiOperation({
+    summary: "Get studio dashboard overview metrics, activities and stats",
+  })
   @ResponseMessage("Overview data retrieved")
   async getOverview(@Param("id") id: string) {
     return this.schoolsService.getOverview(id);
@@ -90,10 +88,7 @@ export class SchoolsController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
   @ApiOperation({ summary: "Update school settings and metadata" })
   @ResponseMessage("School updated successfully")
-  async updateSchool(
-    @Param("id") id: string,
-    @Body() dto: UpdateSchoolDto,
-  ) {
+  async updateSchool(@Param("id") id: string, @Body() dto: UpdateSchoolDto) {
     return this.schoolsService.updateSchool(id, dto);
   }
 
@@ -110,10 +105,7 @@ export class SchoolsController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
   @ApiOperation({ summary: "Invite or add a team member to school" })
   @ResponseMessage("Member added successfully")
-  async addMember(
-    @Param("id") id: string,
-    @Body() dto: AddMemberDto,
-  ) {
+  async addMember(@Param("id") id: string, @Body() dto: AddMemberDto) {
     return this.schoolsService.addMember(id, dto);
   }
 

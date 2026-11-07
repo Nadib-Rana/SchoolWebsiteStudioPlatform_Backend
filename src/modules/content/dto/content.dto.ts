@@ -13,12 +13,36 @@ export class UpdateContentDto {
   @IsOptional()
   established?: number;
 
-  @ApiPropertyOptional({ example: "Excellence in Education, Leadership in Character" })
+  @ApiPropertyOptional({ example: 1984 })
+  @IsInt()
+  @IsOptional()
+  establishedYear?: number;
+
+  @ApiPropertyOptional({ example: "NHS-1042" })
+  @IsString()
+  @IsOptional()
+  schoolCode?: string;
+
+  @ApiPropertyOptional({ example: "Northfield High School" })
+  @IsString()
+  @IsOptional()
+  schoolName?: string;
+
+  @ApiPropertyOptional({ example: "Secondary school" })
+  @IsString()
+  @IsOptional()
+  schoolType?: string;
+
+  @ApiPropertyOptional({
+    example: "Excellence in Education, Leadership in Character",
+  })
   @IsString()
   @IsOptional()
   motto?: string;
 
-  @ApiPropertyOptional({ example: "Northfield High School has provided excellence..." })
+  @ApiPropertyOptional({
+    example: "Northfield High School has provided excellence...",
+  })
   @IsString()
   @IsOptional()
   shortBio?: string;
@@ -33,7 +57,9 @@ export class UpdateContentDto {
   @IsOptional()
   principalTitle?: string;
 
-  @ApiPropertyOptional({ example: "Welcome to our vibrant school community..." })
+  @ApiPropertyOptional({
+    example: "Welcome to our vibrant school community...",
+  })
   @IsString()
   @IsOptional()
   principalBio?: string;
@@ -48,12 +74,16 @@ export class UpdateContentDto {
   @IsOptional()
   visionStatement?: string;
 
-  @ApiPropertyOptional({ example: "To provide an inclusive learning environment..." })
+  @ApiPropertyOptional({
+    example: "To provide an inclusive learning environment...",
+  })
   @IsString()
   @IsOptional()
   missionStatement?: string;
 
-  @ApiPropertyOptional({ example: "142 Northfield Avenue, Riverdale, NY 10471" })
+  @ApiPropertyOptional({
+    example: "142 Northfield Avenue, Riverdale, NY 10471",
+  })
   @IsString()
   @IsOptional()
   address?: string;

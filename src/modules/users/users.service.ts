@@ -95,7 +95,9 @@ export class UsersService {
     });
 
     if (existing) {
-      throw new ConflictException("User with this email or username already exists");
+      throw new ConflictException(
+        "User with this email or username already exists",
+      );
     }
 
     const hashedPassword = await HashUtil.hash(dto.password);

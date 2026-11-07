@@ -52,6 +52,15 @@ enum PublishStatus {
   EXPIRED
 }
 
+enum AdmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  ACCEPTED
+  REJECTED
+  WAITLISTED
+}
+
 // ==========================================
 // User & Auth Models
 // ==========================================
@@ -189,6 +198,7 @@ model School {
   integrations     SchoolIntegration[]
   versions         WebsiteVersion[]
   inquiries        ContactInquiry[]
+  admissions       AdmissionApplication[]
   analytics        AnalyticsDaily[]
   settings         SchoolSettings?
 
@@ -601,4 +611,32 @@ model SchoolSettings {
   school                  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("school_settings")
+}
+
+model AdmissionApplication {
+  id                    String          @id @default(uuid()) @db.Uuid
+  schoolId              String          @db.Uuid @map("school_id")
+  applicationNumber     String          @unique @map("application_number")
+  studentName           String          @map("student_name")
+  dateOfBirth           DateTime        @map("date_of_birth")
+  gender                String
+  applyingForGrade      String          @map("applying_for_grade")
+  previousSchool        String?         @map("previous_school")
+  guardianName          String          @map("guardian_name")
+  guardianRelationship  String          @map("guardian_relationship")
+  guardianPhone         String          @map("guardian_phone")
+  guardianEmail         String          @map("guardian_email")
+  address               String
+  documents             Json?
+  status                AdmissionStatus @default(SUBMITTED)
+  notes                 String?         @db.Text
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  school                School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@index([applicationNumber])
+  @@map("admission_applications")
 }

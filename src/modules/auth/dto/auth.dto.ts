@@ -8,7 +8,10 @@ import {
 } from "class-validator";
 
 export class RegisterDto {
-  @ApiProperty({ example: "user@example.com", description: "User email address" })
+  @ApiProperty({
+    example: "user@example.com",
+    description: "User email address",
+  })
   @IsEmail({}, { message: "Please enter a valid email address" })
   @IsNotEmpty()
   email: string;

@@ -9,9 +9,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: nest_starter_db
+      POSTGRES_DB: school_studio_db
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - nest_postgres_data:/var/lib/postgresql/data
     networks:

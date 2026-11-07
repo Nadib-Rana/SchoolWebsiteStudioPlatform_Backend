@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Patch, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { SettingsService } from "./settings.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -24,7 +17,9 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
-  @ApiOperation({ summary: "Get school preferences, localization and security settings" })
+  @ApiOperation({
+    summary: "Get school preferences, localization and security settings",
+  })
   @ResponseMessage("Settings retrieved successfully")
   async getSettings(@Param("id") id: string) {
     return this.settingsService.getSettings(id);

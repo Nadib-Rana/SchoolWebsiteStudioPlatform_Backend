@@ -128,8 +128,12 @@ export class GalleryService {
       where: { id: albumId },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.slug !== undefined ? { slug: dto.slug.toLowerCase().trim() } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.slug !== undefined
+          ? { slug: dto.slug.toLowerCase().trim() }
+          : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
         ...(dto.coverUrl !== undefined ? { coverUrl: dto.coverUrl } : {}),
         ...(dto.category !== undefined ? { category: dto.category } : {}),
         ...(dto.order !== undefined ? { order: dto.order } : {}),

@@ -86,7 +86,10 @@ export class CreateEventDto {
   @IsOptional()
   bannerUrl?: string;
 
-  @ApiPropertyOptional({ enum: PublishStatus, default: PublishStatus.PUBLISHED })
+  @ApiPropertyOptional({
+    enum: PublishStatus,
+    default: PublishStatus.PUBLISHED,
+  })
   @IsEnum(PublishStatus)
   @IsOptional()
   status?: PublishStatus;

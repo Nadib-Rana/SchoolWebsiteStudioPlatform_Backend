@@ -95,13 +95,19 @@ export class NoticesService {
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
         ...(dto.category !== undefined ? { category: dto.category } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
         ...(dto.fileUrl !== undefined ? { fileUrl: dto.fileUrl } : {}),
         ...(dto.isPinned !== undefined ? { isPinned: dto.isPinned } : {}),
         ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.publishDate !== undefined ? { publishDate: new Date(dto.publishDate) } : {}),
-        ...(dto.expiryDate !== undefined ? { expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null } : {}),
+        ...(dto.publishDate !== undefined
+          ? { publishDate: new Date(dto.publishDate) }
+          : {}),
+        ...(dto.expiryDate !== undefined
+          ? { expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null }
+          : {}),
       },
     });
   }

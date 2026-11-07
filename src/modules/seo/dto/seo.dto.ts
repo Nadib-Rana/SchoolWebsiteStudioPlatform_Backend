@@ -1,13 +1,10 @@
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  IsBoolean,
-} from "class-validator";
+import { IsString, IsOptional, IsArray, IsBoolean } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UpdateSeoDto {
-  @ApiPropertyOptional({ example: "Northfield High School | Inspiring Excellence" })
+  @ApiPropertyOptional({
+    example: "Northfield High School | Inspiring Excellence",
+  })
   @IsString()
   @IsOptional()
   siteTitle?: string;

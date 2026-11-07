@@ -36,10 +36,7 @@ export class NoticesController {
   @Get()
   @ApiOperation({ summary: "List school notices with filtering and search" })
   @ResponseMessage("Notices retrieved successfully")
-  async getNotices(
-    @Param("id") id: string,
-    @Query() query: NoticeQueryDto,
-  ) {
+  async getNotices(@Param("id") id: string, @Query() query: NoticeQueryDto) {
     return this.noticesService.getNotices(id, query);
   }
 
@@ -56,19 +53,26 @@ export class NoticesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(SchoolRolesGuard)
-  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR, SchoolRole.CONTENT_MANAGER)
+  @SchoolRoles(
+    SchoolRole.OWNER,
+    SchoolRole.ADMIN,
+    SchoolRole.EDITOR,
+    SchoolRole.CONTENT_MANAGER,
+  )
   @ApiOperation({ summary: "Create notice or announcement" })
   @ResponseMessage("Notice created successfully")
-  async createNotice(
-    @Param("id") id: string,
-    @Body() dto: CreateNoticeDto,
-  ) {
+  async createNotice(@Param("id") id: string, @Body() dto: CreateNoticeDto) {
     return this.noticesService.createNotice(id, dto);
   }
 
   @Patch(":noticeId")
   @UseGuards(SchoolRolesGuard)
-  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR, SchoolRole.CONTENT_MANAGER)
+  @SchoolRoles(
+    SchoolRole.OWNER,
+    SchoolRole.ADMIN,
+    SchoolRole.EDITOR,
+    SchoolRole.CONTENT_MANAGER,
+  )
   @ApiOperation({ summary: "Update notice" })
   @ResponseMessage("Notice updated successfully")
   async updateNotice(

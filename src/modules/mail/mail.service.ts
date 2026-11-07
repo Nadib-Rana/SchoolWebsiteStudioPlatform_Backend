@@ -20,8 +20,14 @@ export class MailService {
 
   private getBaseContext() {
     return {
-      appName: this.configService.get<string>("app.name", "Nest Starter Template"),
-      appUrl: this.configService.get<string>("app.appUrl", "http://localhost:3000"),
+      appName: this.configService.get<string>(
+        "app.name",
+        "Nest Starter Template",
+      ),
+      appUrl: this.configService.get<string>(
+        "app.appUrl",
+        "http://localhost:3000",
+      ),
       year: new Date().getFullYear(),
     };
   }
@@ -53,7 +59,11 @@ export class MailService {
     }
   }
 
-  async sendWelcomeEmail(to: string, name: string, loginUrl?: string): Promise<boolean> {
+  async sendWelcomeEmail(
+    to: string,
+    name: string,
+    loginUrl?: string,
+  ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       "app.frontendUrl",
       "http://localhost:5173",

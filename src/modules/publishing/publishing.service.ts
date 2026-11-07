@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { ReleaseVersionDto } from "./dto/publishing.dto";
 import { PublishStatus } from "@prisma/client";
@@ -8,34 +8,40 @@ export class PublishingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getPublishingStatus(schoolId: string) {
-    const [school, themeConfig, draftPages, draftNotices, draftEvents, versions] =
-      await Promise.all([
-        this.prisma.school.findUnique({
-          where: { id: schoolId },
-          select: { isPublished: true, updatedAt: true },
-        }),
-        this.prisma.schoolThemeConfig.findUnique({
-          where: { schoolId },
-          select: { draftConfig: true, updatedAt: true },
-        }),
-        this.prisma.webPage.findMany({
-          where: { schoolId, status: PublishStatus.DRAFT },
-          select: { id: true, title: true, slug: true, updatedAt: true },
-        }),
-        this.prisma.notice.findMany({
-          where: { schoolId, status: PublishStatus.DRAFT },
-          select: { id: true, title: true, updatedAt: true },
-        }),
-        this.prisma.schoolEvent.findMany({
-          where: { schoolId, status: PublishStatus.DRAFT },
-          select: { id: true, title: true, updatedAt: true },
-        }),
-        this.prisma.websiteVersion.findMany({
-          where: { schoolId },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        }),
-      ]);
+    const [
+      school,
+      themeConfig,
+      draftPages,
+      draftNotices,
+      draftEvents,
+      versions,
+    ] = await Promise.all([
+      this.prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { isPublished: true, updatedAt: true },
+      }),
+      this.prisma.schoolThemeConfig.findUnique({
+        where: { schoolId },
+        select: { draftConfig: true, updatedAt: true },
+      }),
+      this.prisma.webPage.findMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        select: { id: true, title: true, slug: true, updatedAt: true },
+      }),
+      this.prisma.notice.findMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        select: { id: true, title: true, updatedAt: true },
+      }),
+      this.prisma.schoolEvent.findMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        select: { id: true, title: true, updatedAt: true },
+      }),
+      this.prisma.websiteVersion.findMany({
+        where: { schoolId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ]);
 
     const stagedChanges = [
       ...(themeConfig?.draftConfig
@@ -68,7 +74,8 @@ export class PublishingService {
       })),
     ];
 
-    const currentVersion = versions.find((v) => v.isCurrent) || versions[0] || null;
+    const currentVersion =
+      versions.find((v) => v.isCurrent) || versions[0] || null;
 
     return {
       isPublished: school?.isPublished || false,
@@ -114,7 +121,6 @@ export class PublishingService {
       ),
     );
 
-
     // 2. Mark older versions as not current
     await this.prisma.websiteVersion.updateMany({
       where: { schoolId, isCurrent: true },
@@ -140,18 +146,29 @@ export class PublishingService {
         where: { schoolId },
         data: {
           activeTheme: draft.activeTheme || themeConfig.activeTheme,
-          selectedTemplate: draft.selectedTemplate || themeConfig.selectedTemplate,
+          selectedTemplate:
+            draft.selectedTemplate || themeConfig.selectedTemplate,
           primaryColor: draft.primaryColor || themeConfig.primaryColor,
           draftConfig: null,
         },
       });
     }
 
-    // 5. Publish draft pages
-    await this.prisma.webPage.updateMany({
-      where: { schoolId, status: PublishStatus.DRAFT },
-      data: { status: PublishStatus.PUBLISHED },
-    });
+    // 5. Publish draft pages, notices, and events
+    await Promise.all([
+      this.prisma.webPage.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+      this.prisma.notice.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+      this.prisma.schoolEvent.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+    ]);
 
     // 6. Ensure school is marked as published
     await this.prisma.school.update({

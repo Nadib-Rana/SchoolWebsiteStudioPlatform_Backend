@@ -36,10 +36,7 @@ export class EventsController {
   @Get()
   @ApiOperation({ summary: "List school events with filtering and search" })
   @ResponseMessage("Events retrieved successfully")
-  async getEvents(
-    @Param("id") id: string,
-    @Query() query: EventQueryDto,
-  ) {
+  async getEvents(@Param("id") id: string, @Query() query: EventQueryDto) {
     return this.eventsService.getEvents(id, query);
   }
 
@@ -59,10 +56,7 @@ export class EventsController {
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN, SchoolRole.EDITOR)
   @ApiOperation({ summary: "Create a new event" })
   @ResponseMessage("Event created successfully")
-  async createEvent(
-    @Param("id") id: string,
-    @Body() dto: CreateEventDto,
-  ) {
+  async createEvent(@Param("id") id: string, @Body() dto: CreateEventDto) {
     return this.eventsService.createEvent(id, dto);
   }
 

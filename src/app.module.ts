@@ -1,6 +1,11 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from "@nestjs/core";
+import {
+  APP_FILTER,
+  APP_GUARD,
+  APP_INTERCEPTOR,
+  Reflector,
+} from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 // Configurations
@@ -40,6 +45,7 @@ import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { PublishingModule } from "./modules/publishing/publishing.module";
 import { PublicSiteModule } from "./modules/public-site/public-site.module";
+import { AdmissionsModule } from "./modules/admissions/admissions.module";
 
 // App Core Controller & Service
 import { AppController } from "./app.controller";
@@ -93,6 +99,7 @@ import { AppService } from "./app.service";
     SettingsModule,
     PublishingModule,
     PublicSiteModule,
+    AdmissionsModule,
   ],
   controllers: [AppController],
   providers: [
