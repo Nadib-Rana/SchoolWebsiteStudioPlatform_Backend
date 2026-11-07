@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import {
@@ -81,13 +82,21 @@ export class AdmissionsService {
     };
   }
 
-  async track(applicationNumber: string, phone?: string) {
+  async track(applicationNumber: string, phone: string) {
     const normalizedAppNum = applicationNumber.trim().toUpperCase();
+
+    if (!phone || phone.trim().length < 4) {
+      throw new BadRequestException(
+        "Guardian phone number is required to verify tracking identity.",
+      );
+    }
+
+    const cleanDigits = phone.replace(/[^0-9]/g, "");
 
     const application = await this.prisma.admissionApplication.findFirst({
       where: {
         applicationNumber: normalizedAppNum,
-        ...(phone ? { guardianPhone: { contains: phone.trim() } } : {}),
+        guardianPhone: { contains: cleanDigits.slice(-4) },
       },
       include: {
         school: {
@@ -101,7 +110,7 @@ export class AdmissionsService {
 
     if (!application) {
       throw new NotFoundException(
-        "Application record not found. Please verify the application number and phone.",
+        "Application record not found. Please verify the application number and phone number.",
       );
     }
 

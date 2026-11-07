@@ -76,10 +76,13 @@ export class TrackAdmissionDto {
   @IsNotEmpty()
   applicationNumber: string;
 
-  @ApiPropertyOptional({ example: "+1 (555) 345-6789" })
+  @ApiProperty({
+    example: "+1 (555) 345-6789",
+    description: "Guardian phone number required for verification",
+  })
   @IsString()
-  @IsOptional()
-  guardianPhone?: string;
+  @IsNotEmpty({ message: "Guardian phone number is required for tracking verification" })
+  guardianPhone: string;
 }
 
 export class UpdateAdmissionStatusDto {
