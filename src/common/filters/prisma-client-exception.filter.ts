@@ -57,21 +57,12 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
 
     this.logger.warn(`Prisma error [${exception.code}]: ${message}`);
 
-    const errorResponse: ApiErrorResponseDto = {
-      success: false,
-      statusCode,
-      message,
-      errorCode,
-      requestId: this.contextService.getRequestId() || null,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      errors: [
-        {
-          code: exception.code,
-          meta: exception.meta,
-        },
-      ],
-    };
+    const errorResponse = [
+      {
+        code: errorCode || exception.code || "DatabaseException",
+        message,
+      },
+    ];
 
     response.status(statusCode).json(errorResponse);
   }

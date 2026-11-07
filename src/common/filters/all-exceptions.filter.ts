@@ -26,48 +26,45 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<Request>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = "Internal server error";
-    let errorCode = "INTERNAL_SERVER_ERROR";
-    let errors: any[] = [];
-    let instruction: string | undefined = undefined;
-    let details: unknown = undefined;
+    let message: any = "Internal server error";
+    let errorCode = "InternalServerError";
 
     if (exception instanceof BaseException) {
       statusCode = exception.getStatus();
-      errorCode = exception.code || "BASE_EXCEPTION";
-      instruction = exception.instruction;
-      details = exception.details;
-      errors = exception.errors || [];
+      errorCode = exception.code || exception.constructor.name || "BaseException";
       const res = exception.getResponse() as any;
       message = typeof res === "string" ? res : res.message || message;
     } else if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
+      errorCode = (exception as any)?.constructor?.name || "HttpException";
       const res = exception.getResponse() as any;
       message = typeof res === "string" ? res : res.message || message;
     } else if (exception instanceof Error) {
       message = exception.message;
+      errorCode = exception.name || "Error";
       this.logger.error(
         `Unhandled exception: ${exception.message}`,
         exception.stack,
       );
     }
 
-    const responseBody: ApiErrorResponseDto = {
-      success: false,
-      statusCode,
-      message: Array.isArray(message) ? message.join(", ") : message,
-      errorCode,
-      requestId: this.contextService.getRequestId() || null,
-      timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(request),
-      errors,
-      instruction,
-      details,
-    };
+    const errorResponse = Array.isArray(message)
+      ? message.map((msg) => ({
+          code: errorCode,
+          message: typeof msg === "string" ? msg : JSON.stringify(msg),
+        }))
+      : [
+          {
+            code: errorCode,
+            message:
+              typeof message === "string"
+                ? message
+                : JSON.stringify(message) || "An unexpected error occurred",
+          },
+        ];
 
-    httpAdapter.reply(ctx.getResponse(), responseBody, statusCode);
+    httpAdapter.reply(ctx.getResponse(), errorResponse, statusCode);
   }
 }

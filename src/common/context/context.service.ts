@@ -6,8 +6,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { requestContext, RequestContextStore } from "./storage";
 
-// Define a constant key for our request ID
+// Define constant keys for our request context
 export const REQUEST_ID_KEY = "requestId";
+export const CORRELATION_ID_KEY = "correlationId";
 
 @Injectable()
 export class ContextService {
@@ -47,5 +48,12 @@ export class ContextService {
    */
   getRequestId(): string | undefined {
     return this.get(REQUEST_ID_KEY);
+  }
+
+  /**
+   * A convenience method to get the correlation ID.
+   */
+  getCorrelationId(): string | undefined {
+    return this.get(CORRELATION_ID_KEY) || this.getRequestId();
   }
 }
