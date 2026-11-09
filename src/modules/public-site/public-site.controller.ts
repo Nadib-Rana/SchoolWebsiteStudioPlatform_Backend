@@ -33,6 +33,16 @@ export class PublicSiteController {
   constructor(private readonly publicSiteService: PublicSiteService) {}
 
   @Public()
+  @Get("public/schools")
+  @ApiOperation({
+    summary: "List all published schools for sitemap and directory discovery",
+  })
+  @ResponseMessage("Published schools retrieved successfully")
+  async getPublishedSchools() {
+    return this.publicSiteService.getPublishedSchools();
+  }
+
+  @Public()
   @Get("public/site")
   @ApiOperation({
     summary: "Get complete public school website data by slug or domain",
@@ -57,11 +67,11 @@ export class PublicSiteController {
 
   @Public()
   @Get("public/:slug/notices/:noticeId")
-  @ApiOperation({ summary: "Get single published notice" })
+  @ApiOperation({ summary: "Get single published notice by ID or slug" })
   @ResponseMessage("Notice retrieved successfully")
   async getPublicNotice(
     @Param("slug") slug: string,
-    @Param("noticeId", ParseUUIDPipe) noticeId: string,
+    @Param("noticeId") noticeId: string,
   ) {
     return this.publicSiteService.getPublicNotice(slug, noticeId);
   }

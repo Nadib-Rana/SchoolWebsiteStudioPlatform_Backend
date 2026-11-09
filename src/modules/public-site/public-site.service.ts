@@ -14,6 +14,20 @@ import { PublishStatus } from "@prisma/client";
 export class PublicSiteService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getPublishedSchools() {
+    return this.prisma.school.findMany({
+      where: { isPublished: true, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logoUrl: true,
+        updatedAt: true,
+      },
+      orderBy: { name: "asc" },
+    });
+  }
+
   async resolvePublishedSchool(identifier: string) {
     const trimmed = identifier.toLowerCase().trim();
     const isUuid =
@@ -216,13 +230,20 @@ export class PublicSiteService {
     });
   }
 
-  async getPublicNotice(identifier: string, noticeId: string) {
+  async getPublicNotice(identifier: string, noticeIdOrSlug: string) {
     const school = await this.resolvePublishedSchool(identifier);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        noticeIdOrSlug,
+      );
     const notice = await this.prisma.notice.findFirst({
       where: {
-        id: noticeId,
         schoolId: school.id,
         status: PublishStatus.PUBLISHED,
+        OR: [
+          { slug: noticeIdOrSlug },
+          ...(isUuid ? [{ id: noticeIdOrSlug }] : []),
+        ],
       },
     });
     if (!notice) throw new NotFoundException("Notice not found");

@@ -71,10 +71,19 @@ export class NoticesService {
   }
 
   async createNotice(schoolId: string, dto: CreateNoticeDto) {
+    const slug =
+      dto.slug ||
+      dto.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 100);
+
     return this.prisma.notice.create({
       data: {
         schoolId,
         title: dto.title,
+        slug,
         category: dto.category || "General",
         description: dto.description,
         fileUrl: dto.fileUrl || null,
@@ -90,10 +99,21 @@ export class NoticesService {
   async updateNotice(schoolId: string, noticeId: string, dto: UpdateNoticeDto) {
     await this.getNoticeById(schoolId, noticeId);
 
+    const slug = dto.slug
+      ? dto.slug
+      : dto.title
+        ? dto.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 100)
+        : undefined;
+
     return this.prisma.notice.update({
       where: { id: noticeId },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(slug !== undefined ? { slug } : {}),
         ...(dto.category !== undefined ? { category: dto.category } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }

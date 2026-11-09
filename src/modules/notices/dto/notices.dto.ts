@@ -51,6 +51,11 @@ export class CreateNoticeDto {
   @IsNotEmpty()
   title: string;
 
+  @ApiPropertyOptional({ example: "summer-schedule-and-office-hours" })
+  @IsString()
+  @IsOptional()
+  slug?: string;
+
   @ApiPropertyOptional({ default: "General" })
   @IsString()
   @IsOptional()
@@ -102,6 +107,11 @@ export class UpdateNoticeDto {
   @IsString()
   @IsOptional()
   title?: string;
+
+  @ApiPropertyOptional({ example: "summer-schedule-and-office-hours" })
+  @IsString()
+  @IsOptional()
+  slug?: string;
 
   @ApiPropertyOptional()
   @IsString()

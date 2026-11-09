@@ -348,6 +348,7 @@ model Notice {
   id          String        @id @default(uuid()) @db.Uuid
   schoolId    String        @db.Uuid @map("school_id")
   title       String
+  slug        String?
   category    String        @default("General")
   description String        @db.Text
   fileUrl     String?       @map("file_url")
@@ -363,6 +364,7 @@ model Notice {
 
   @@index([schoolId])
   @@index([schoolId, status])
+  @@index([schoolId, slug])
   @@map("notices")
 }
 

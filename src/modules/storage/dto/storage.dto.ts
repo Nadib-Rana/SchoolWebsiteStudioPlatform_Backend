@@ -24,6 +24,14 @@ export class PresignUploadDto {
   @IsOptional()
   @IsString()
   bucket?: string;
+
+  @ApiPropertyOptional({
+    description: "School Tenant ID to namespace file in multi-tenant storage",
+    example: "604be680-29e4-4c68-8bca-f701a6dcd39e",
+  })
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
 }
 
 export class PresignDownloadDto {

@@ -150,11 +150,15 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const identifier = dto.identifier.trim().toLowerCase();
+    const rawId = dto.identifier || dto.email;
+    if (!rawId) {
+      throw new BadRequestException("Email or username is required");
+    }
+    const identifier = rawId.trim().toLowerCase();
 
     const user = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: identifier }, { username: dto.identifier.trim() }],
+        OR: [{ email: identifier }, { username: rawId.trim() }],
       },
     });
 

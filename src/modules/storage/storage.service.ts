@@ -85,10 +85,13 @@ export class StorageService implements OnModuleInit {
     return this.minioClient !== null;
   }
 
-  generateKey(folder = "uploads", originalName = "file"): string {
+  generateKey(folder = "uploads", originalName = "file", schoolId?: string): string {
     const ext = path.extname(originalName);
     const randomHash = crypto.randomBytes(8).toString("hex");
     const timestamp = Date.now();
+    if (schoolId) {
+      return `tenants/${schoolId}/${folder}/${timestamp}-${randomHash}${ext}`;
+    }
     return `${folder}/${timestamp}-${randomHash}${ext}`;
   }
 
