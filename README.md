@@ -20,6 +20,21 @@
 
 ---
 
+## 🏛️ Multi-Tenant Architecture & Dynamic Session Workflow
+
+The backend is built as a hardened multi-tenant SaaS platform where multiple schools operate isolated institutional websites.
+
+For the comprehensive enterprise engineering specification and diagrams, see:
+👉 [**Multi-Tenant Workflow Architecture (`docs/architecture/MULTI_TENANT_WORKFLOW_ARCHITECTURE.md`)**](../docs/architecture/MULTI_TENANT_WORKFLOW_ARCHITECTURE.md)
+
+### Key Architectural Tenets:
+- **Tenant Context Resolution**: Injected via `TenantGuard` and scoped to `SchoolMember` association.
+- **Dynamic Membership Discovery**: `GET /api/v1/schools/my-schools` provides the list of all authorized schools for the active session.
+- **Strict IDOR Mitigation**: Requests with mismatched `x-school-id` or route params are rejected with `HTTP 403 Forbidden`.
+- **Atomic Onboarding**: School creation, page seeding, and role provisioning run inside Prisma `$transaction`.
+
+---
+
 ## 🚀 Key Features
 
 - **🧱 Clean Modular Architecture**: Feature-based domain modules with strict separation of concerns.

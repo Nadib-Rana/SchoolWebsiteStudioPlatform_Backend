@@ -10,6 +10,9 @@
 
 ## 1. Executive Summary & Test Methodology
 
+> [!NOTE]
+> **Architecture & Dynamic Workflow Reference:** For the complete sequence diagram, component data-flow, and reactive school switcher workflow, refer to the [Multi-Tenant Architecture & Workflow Specification](../architecture/MULTI_TENANT_WORKFLOW_ARCHITECTURE.md).
+
 Multi-tenant isolation is the highest critical priority for this SaaS platform. Three isolated test schools and an unauthorized external attacker persona were provisioned to evaluate data isolation boundaries:
 
 - **School A:** Greenwood Academy (`fcf06477-f63a-44b0-8b3a-3d0c4b8ee66e`), Slug: `greenwood-academy` (Published). Admin: `admin@greenwood.edu`.
