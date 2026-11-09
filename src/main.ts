@@ -6,6 +6,12 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { json, urlencoded } from "express";
 
+// Ensure BigInt values (e.g. storage limits, file bytes) serialize cleanly to JSON
+(BigInt.prototype as any).toJSON = function () {
+  const num = Number(this);
+  return Number.isSafeInteger(num) ? num : this.toString();
+};
+
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
   const app = await NestFactory.create(AppModule);
