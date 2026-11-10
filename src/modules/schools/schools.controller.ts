@@ -101,13 +101,25 @@ export class SchoolsController {
     return this.schoolsService.getMembers(id);
   }
 
+  @Get(":id/roles/permissions")
+  @UseGuards(TenantGuard)
+  @ApiOperation({ summary: "Get granular role capabilities and permission matrix" })
+  @ResponseMessage("Permission matrix retrieved successfully")
+  async getPermissionMatrix() {
+    return this.schoolsService.getPermissionMatrix();
+  }
+
   @Post(":id/members")
   @UseGuards(TenantGuard, SchoolRolesGuard)
   @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
   @ApiOperation({ summary: "Invite or add a team member to school" })
   @ResponseMessage("Member added successfully")
-  async addMember(@Param("id") id: string, @Body() dto: AddMemberDto) {
-    return this.schoolsService.addMember(id, dto);
+  async addMember(
+    @Param("id") id: string,
+    @Body() dto: AddMemberDto,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.schoolsService.addMember(id, dto, userId);
   }
 
   @Patch(":id/members/:memberId")
@@ -119,8 +131,9 @@ export class SchoolsController {
     @Param("id") id: string,
     @Param("memberId", ParseUUIDPipe) memberId: string,
     @Body() dto: UpdateMemberRoleDto,
+    @CurrentUser("id") userId: string,
   ) {
-    return this.schoolsService.updateMemberRole(id, memberId, dto);
+    return this.schoolsService.updateMemberRole(id, memberId, dto, userId);
   }
 
   @Delete(":id/members/:memberId")
@@ -131,7 +144,8 @@ export class SchoolsController {
   async removeMember(
     @Param("id") id: string,
     @Param("memberId", ParseUUIDPipe) memberId: string,
+    @CurrentUser("id") userId: string,
   ) {
-    return this.schoolsService.removeMember(id, memberId);
+    return this.schoolsService.removeMember(id, memberId, userId);
   }
 }

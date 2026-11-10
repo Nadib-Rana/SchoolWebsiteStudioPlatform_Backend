@@ -105,19 +105,24 @@ export class SchoolsService {
     return this.membersService.getMembers(schoolId);
   }
 
-  async addMember(schoolId: string, dto: AddMemberDto) {
-    return this.membersService.addMember(schoolId, dto);
+  getPermissionMatrix() {
+    return this.membersService.getPermissionMatrix();
+  }
+
+  async addMember(schoolId: string, dto: AddMemberDto, actorId?: string) {
+    return this.membersService.addMember(schoolId, dto, actorId);
   }
 
   async updateMemberRole(
     schoolId: string,
     memberId: string,
     dto: UpdateMemberRoleDto,
+    actorId?: string,
   ) {
-    return this.membersService.updateMemberRole(schoolId, memberId, dto);
+    return this.membersService.updateMemberRole(schoolId, memberId, dto, actorId);
   }
 
-  async removeMember(schoolId: string, memberId: string) {
-    return this.membersService.removeMember(schoolId, memberId);
+  async removeMember(schoolId: string, memberId: string, actorId?: string) {
+    return this.membersService.removeMember(schoolId, memberId, actorId);
   }
 }

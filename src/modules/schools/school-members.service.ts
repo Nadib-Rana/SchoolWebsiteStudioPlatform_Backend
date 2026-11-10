@@ -2,15 +2,21 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { MailService } from "../mail/mail.service";
+import { AuditService } from "../audit/audit.service";
 import { AddMemberDto, UpdateMemberRoleDto } from "./dto/school.dto";
 import { SchoolRole, UserStatus, Role } from "@prisma/client";
 import { HashUtil } from "../../common/utils/hash.util";
 import * as crypto from "crypto";
+import {
+  USER_SELECT_FIELDS,
+  ROLE_PERMISSION_MATRIX,
+  assertOwnerLimit,
+  buildInviteEmail,
+} from "./school-members.helper";
 
 @Injectable()
 export class SchoolMembersService {
@@ -19,6 +25,7 @@ export class SchoolMembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly auditService: AuditService,
   ) {}
 
   async getMySchools(userId: string) {
@@ -52,23 +59,25 @@ export class SchoolMembersService {
   async getMembers(schoolId: string) {
     return this.prisma.schoolMember.findMany({
       where: { schoolId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-            status: true,
-          },
-        },
-      },
+      include: { user: { select: USER_SELECT_FIELDS } },
       orderBy: { createdAt: "asc" },
     });
   }
 
-  async addMember(schoolId: string, dto: AddMemberDto) {
+  getPermissionMatrix() {
+    return {
+      roles: [
+        SchoolRole.OWNER,
+        SchoolRole.ADMIN,
+        SchoolRole.EDITOR,
+        SchoolRole.CONTENT_MANAGER,
+        SchoolRole.ANALYST,
+      ],
+      capabilities: ROLE_PERMISSION_MATRIX,
+    };
+  }
+
+  async addMember(schoolId: string, dto: AddMemberDto, actorId?: string) {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
       select: { name: true, slug: true },
@@ -102,85 +111,82 @@ export class SchoolMembersService {
 
     const member = await this.prisma.schoolMember.create({
       data: { schoolId, userId: user.id, role: dto.role },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-            status: true,
-          },
-        },
-      },
+      include: { user: { select: USER_SELECT_FIELDS } },
     });
 
-    const inviteMsg = tempPassword
-      ? `You have been invited to join ${school.name} on SchoolCanvas Website Studio as ${dto.role}.\n\nYour temporary password is: ${tempPassword}\nPlease login and update your password.`
-      : `You have been added to ${school.name} team on SchoolCanvas Website Studio as ${dto.role}.`;
-
+    const inviteMsg = buildInviteEmail(school.name, dto.role, tempPassword);
     void this.mailService
       .sendNotification(email, user.firstName || "Colleague", `Invitation to ${school.name} Studio`, inviteMsg)
       .catch((err) => this.logger.warn(`Failed to dispatch staff invitation email: ${err.message}`));
 
+    if (actorId) {
+      await this.auditService.log({
+        schoolId,
+        userId: actorId,
+        action: "MEMBER_INVITED",
+        entity: "SchoolMember",
+        entityId: member.id,
+        details: { invitedEmail: email, role: dto.role },
+      });
+    }
+
     return member;
   }
 
-  async updateMemberRole(schoolId: string, memberId: string, dto: UpdateMemberRoleDto) {
+  async updateMemberRole(schoolId: string, memberId: string, dto: UpdateMemberRoleDto, actorId?: string) {
     const member = await this.prisma.schoolMember.findUnique({
       where: { id: memberId },
-      include: { user: { select: { email: true, firstName: true } } },
+      include: { user: { select: { email: true } } },
     });
     if (!member || member.schoolId !== schoolId) {
       throw new NotFoundException("Member not found in this school");
     }
 
-    if (member.role === SchoolRole.OWNER && dto.role !== SchoolRole.OWNER) {
-      const ownerCount = await this.prisma.schoolMember.count({
-        where: { schoolId, role: SchoolRole.OWNER },
-      });
-      if (ownerCount <= 1) {
-        throw new BadRequestException("Cannot demote the only owner of the school");
-      }
-    }
+    await assertOwnerLimit(this.prisma, schoolId, member.role, dto.role);
 
-    return this.prisma.schoolMember.update({
+    const updated = await this.prisma.schoolMember.update({
       where: { id: memberId },
       data: { role: dto.role },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-            status: true,
-          },
-        },
-      },
+      include: { user: { select: USER_SELECT_FIELDS } },
     });
+
+    if (actorId) {
+      await this.auditService.log({
+        schoolId,
+        userId: actorId,
+        action: "MEMBER_ROLE_UPDATED",
+        entity: "SchoolMember",
+        entityId: member.id,
+        details: { memberEmail: member.user?.email, previousRole: member.role, newRole: dto.role },
+      });
+    }
+
+    return updated;
   }
 
-  async removeMember(schoolId: string, memberId: string) {
+  async removeMember(schoolId: string, memberId: string, actorId?: string) {
     const member = await this.prisma.schoolMember.findUnique({
       where: { id: memberId },
+      include: { user: { select: { email: true } } },
     });
     if (!member || member.schoolId !== schoolId) {
       throw new NotFoundException("Member not found in this school");
     }
 
-    if (member.role === SchoolRole.OWNER) {
-      const ownerCount = await this.prisma.schoolMember.count({
-        where: { schoolId, role: SchoolRole.OWNER },
+    await assertOwnerLimit(this.prisma, schoolId, member.role);
+    await this.prisma.schoolMember.delete({ where: { id: memberId } });
+
+    if (actorId) {
+      await this.auditService.log({
+        schoolId,
+        userId: actorId,
+        action: "MEMBER_REMOVED",
+        entity: "SchoolMember",
+        entityId: memberId,
+        details: { memberEmail: member.user?.email, previousRole: member.role },
       });
-      if (ownerCount <= 1) {
-        throw new BadRequestException("Cannot remove the only owner of the school");
-      }
     }
 
-    await this.prisma.schoolMember.delete({ where: { id: memberId } });
     return { message: "Member removed successfully" };
   }
 }
