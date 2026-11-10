@@ -1,11 +1,11 @@
 import { Module } from "@nestjs/common";
 import { PublishingService } from "./publishing.service";
+import { BackupRestoreService } from "./backup-restore.service";
 import { PublishingController } from "./publishing.controller";
-import { PrismaService } from "../../database/prisma.service";
 
 @Module({
   controllers: [PublishingController],
-  providers: [PublishingService, PrismaService],
-  exports: [PublishingService],
+  providers: [PublishingService, BackupRestoreService],
+  exports: [PublishingService, BackupRestoreService],
 })
 export class PublishingModule {}
