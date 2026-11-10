@@ -11,22 +11,18 @@ import {
   AddPhotoDto,
   CreateMediaAssetDto,
 } from "./dto/gallery.dto";
+import { extractStorageKey, calculateStorageStats } from "./gallery.helper";
+import { MediaAssetsService } from "./media-assets.service";
+import { AlbumPhotosService } from "./album-photos.service";
 
 @Injectable()
 export class GalleryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    private readonly mediaAssetsService: MediaAssetsService,
+    private readonly albumPhotosService: AlbumPhotosService,
   ) {}
-
-  private extractStorageKey(urlOrKey: string): string | null {
-    if (!urlOrKey) return null;
-    if (urlOrKey.startsWith("tenants/")) return urlOrKey;
-    const match = urlOrKey.match(/tenants\/[^?#]+/);
-    if (match) return match[0];
-    if (urlOrKey.startsWith("uploads/")) return urlOrKey;
-    return null;
-  }
 
   async getGalleryOverview(schoolId: string) {
     const school = await this.prisma.school.findUnique({
@@ -47,28 +43,13 @@ export class GalleryService {
       }),
     ]);
 
-    // Sum storage used
-    const totalBytesUsed = mediaAssets.reduce(
-      (acc, item) => acc + Number(item.sizeBytes || 0),
-      0,
-    );
-    const totalLimitBytes = Number(school?.planStorageLimit || 10737418240); // 10 GB
-
-    const usedMb = (totalBytesUsed / (1024 * 1024)).toFixed(1);
-    const limitGb = (totalLimitBytes / (1024 * 1024 * 1024)).toFixed(0);
-    const usagePercent = Math.min(
-      100,
-      Math.round((totalBytesUsed / totalLimitBytes) * 100),
+    const storage = calculateStorageStats(
+      mediaAssets,
+      school?.planStorageLimit,
     );
 
     return {
-      storage: {
-        usedBytes: totalBytesUsed,
-        limitBytes: totalLimitBytes,
-        usedFormatted: `${usedMb} MB`,
-        limitFormatted: `${limitGb} GB`,
-        percentage: `${usagePercent}%`,
-      },
+      storage,
       albumsCount: albums.length,
       mediaCount: mediaAssets.length,
       albums,
@@ -162,161 +143,45 @@ export class GalleryService {
       select: { url: true },
     });
     for (const p of photos) {
-      const key = this.extractStorageKey(p.url);
+      const key = extractStorageKey(p.url);
       if (key) {
         try {
           await this.storageService.deleteObject(key);
-        } catch {
-          // Best-effort cleanup
-        }
+        } catch {}
       }
     }
     if (album.coverUrl) {
-      const coverKey = this.extractStorageKey(album.coverUrl);
+      const coverKey = extractStorageKey(album.coverUrl);
       if (coverKey) {
         try {
           await this.storageService.deleteObject(coverKey);
-        } catch {
-          // Best-effort cleanup
-        }
+        } catch {}
       }
     }
 
-    await this.prisma.galleryAlbum.delete({
-      where: { id: albumId },
-    });
-
+    await this.prisma.galleryAlbum.delete({ where: { id: albumId } });
     return { message: "Album deleted successfully" };
   }
 
   async addPhoto(schoolId: string, albumId: string, dto: AddPhotoDto) {
     await this.getAlbumById(schoolId, albumId);
-
-    const photo = await this.prisma.galleryPhoto.create({
-      data: {
-        albumId,
-        caption: dto.caption || null,
-        url: dto.url,
-        thumbnailUrl: dto.thumbnailUrl || null,
-        sizeBytes: dto.sizeBytes ? BigInt(dto.sizeBytes) : null,
-        order: dto.order || 0,
-      },
-    });
-
-    // Update album photo count
-    await this.prisma.galleryAlbum.update({
-      where: { id: albumId },
-      data: { photosCount: { increment: 1 } },
-    });
-
-    return {
-      ...photo,
-      sizeBytes: photo.sizeBytes ? Number(photo.sizeBytes) : null,
-    };
+    return this.albumPhotosService.addPhoto(albumId, dto);
   }
 
   async deletePhoto(schoolId: string, albumId: string, photoId: string) {
     await this.getAlbumById(schoolId, albumId);
-
-    const photo = await this.prisma.galleryPhoto.findFirst({
-      where: { id: photoId, albumId },
-    });
-
-    if (!photo) {
-      throw new NotFoundException("Photo not found");
-    }
-
-    const key = this.extractStorageKey(photo.url);
-    if (key) {
-      try {
-        await this.storageService.deleteObject(key);
-      } catch {
-        // Best-effort cleanup
-      }
-    }
-
-    await this.prisma.galleryPhoto.delete({
-      where: { id: photoId },
-    });
-
-    const album = await this.prisma.galleryAlbum.findUnique({
-      where: { id: albumId },
-    });
-    const updateData: any = { photosCount: { decrement: 1 } };
-    if (album?.coverUrl === photo.url) {
-      const remainingPhoto = await this.prisma.galleryPhoto.findFirst({
-        where: { albumId, id: { not: photoId } },
-      });
-      updateData.coverUrl = remainingPhoto ? remainingPhoto.url : null;
-    }
-
-    await this.prisma.galleryAlbum.update({
-      where: { id: albumId },
-      data: updateData,
-    });
-
-    return { message: "Photo deleted successfully" };
+    return this.albumPhotosService.deletePhoto(albumId, photoId);
   }
 
   async getMediaAssets(schoolId: string, category?: string) {
-    const assets = await this.prisma.mediaAsset.findMany({
-      where: {
-        schoolId,
-        ...(category ? { category } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return assets.map((a) => ({
-      ...a,
-      sizeBytes: Number(a.sizeBytes),
-      sizeFormatted: `${(Number(a.sizeBytes) / (1024 * 1024)).toFixed(1)} MB`,
-    }));
+    return this.mediaAssetsService.getMediaAssets(schoolId, category);
   }
 
   async createMediaAsset(schoolId: string, dto: CreateMediaAssetDto) {
-    const asset = await this.prisma.mediaAsset.create({
-      data: {
-        schoolId,
-        filename: dto.filename,
-        originalName: dto.originalName,
-        mimeType: dto.mimeType,
-        sizeBytes: BigInt(dto.sizeBytes),
-        url: dto.url,
-        thumbnailUrl: dto.thumbnailUrl || null,
-        category: dto.category || "IMAGE",
-        tags: dto.tags || [],
-      },
-    });
-
-    return {
-      ...asset,
-      sizeBytes: Number(asset.sizeBytes),
-    };
+    return this.mediaAssetsService.createMediaAsset(schoolId, dto);
   }
 
   async deleteMediaAsset(schoolId: string, assetId: string) {
-    const asset = await this.prisma.mediaAsset.findFirst({
-      where: { id: assetId, schoolId },
-    });
-
-    if (!asset) {
-      throw new NotFoundException("Media asset not found");
-    }
-
-    const key = this.extractStorageKey(asset.filename) || this.extractStorageKey(asset.url);
-    if (key) {
-      try {
-        await this.storageService.deleteObject(key);
-      } catch {
-        // Best-effort cleanup
-      }
-    }
-
-    await this.prisma.mediaAsset.delete({
-      where: { id: assetId },
-    });
-
-    return { message: "Media asset deleted successfully" };
+    return this.mediaAssetsService.deleteMediaAsset(schoolId, assetId);
   }
 }

@@ -1,5 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
+import { AuthTokenService } from "./auth-token.service";
+import { AuthPasswordService } from "./auth-password.service";
+import { AuthProfileService } from "./auth-profile.service";
 import { PrismaService } from "../../database/prisma.service";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
@@ -45,6 +48,9 @@ describe("AuthService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        AuthTokenService,
+        AuthPasswordService,
+        AuthProfileService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: JwtService, useValue: jwtMock },
         { provide: ConfigService, useValue: configMock },

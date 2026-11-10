@@ -6,44 +6,23 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { PaginationUtil } from "../../common/utils/pagination.util";
-import { Prisma, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { CreatePostDto, UpdatePostDto, PostQueryDto } from "./dto/post.dto";
+import {
+  POST_AUTHOR_SELECT,
+  generatePostSlug,
+  buildPostWhereInput,
+  buildPostOrderBy,
+} from "./posts.helper";
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private generateSlug(title: string): string {
-    return (
-      title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "") +
-      "-" +
-      Math.random().toString(36).substring(2, 7)
-    );
-  }
-
   async findAll(query: PostQueryDto) {
     const { skip, take, page, limit } = PaginationUtil.getSkipTake(query);
-
-    const where: Prisma.PostWhereInput = {
-      ...(query.published !== undefined ? { published: query.published } : {}),
-      ...(query.tag ? { tags: { has: query.tag } } : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { title: { contains: query.search, mode: "insensitive" } },
-              { summary: { contains: query.search, mode: "insensitive" } },
-              { content: { contains: query.search, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    };
-
-    const orderBy: Prisma.PostOrderByWithRelationInput = {
-      [query.sortBy || "createdAt"]: query.sortOrder || "desc",
-    };
+    const where = buildPostWhereInput(query);
+    const orderBy = buildPostOrderBy(query);
 
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
@@ -51,17 +30,7 @@ export class PostsService {
         skip,
         take,
         orderBy,
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              firstName: true,
-              lastName: true,
-              avatarUrl: true,
-            },
-          },
-        },
+        include: { author: { select: POST_AUTHOR_SELECT } },
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -72,17 +41,7 @@ export class PostsService {
   async findBySlug(slug: string) {
     const post = await this.prisma.post.findUnique({
       where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      include: { author: { select: POST_AUTHOR_SELECT } },
     });
 
     if (!post) {
@@ -95,17 +54,7 @@ export class PostsService {
   async findById(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      include: { author: { select: POST_AUTHOR_SELECT } },
     });
 
     if (!post) {
@@ -116,7 +65,7 @@ export class PostsService {
   }
 
   async create(authorId: string, dto: CreatePostDto) {
-    const slug = dto.slug || this.generateSlug(dto.title);
+    const slug = dto.slug || generatePostSlug(dto.title);
 
     const existing = await this.prisma.post.findUnique({
       where: { slug },
@@ -137,17 +86,7 @@ export class PostsService {
         tags: dto.tags || [],
         authorId,
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      include: { author: { select: POST_AUTHOR_SELECT } },
     });
   }
 
@@ -158,7 +97,6 @@ export class PostsService {
   ) {
     const post = await this.findById(id);
 
-    // Ownership check (Super Admin and Admin can update any post)
     if (
       post.authorId !== currentUser.id &&
       currentUser.role !== Role.SUPER_ADMIN &&
@@ -178,17 +116,7 @@ export class PostsService {
         published: dto.published,
         tags: dto.tags,
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          },
-        },
-      },
+      include: { author: { select: POST_AUTHOR_SELECT } },
     });
   }
 
