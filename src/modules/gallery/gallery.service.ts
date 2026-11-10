@@ -4,6 +4,7 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { StorageService } from "../storage/storage.service";
 import {
   CreateAlbumDto,
   UpdateAlbumDto,
@@ -13,7 +14,19 @@ import {
 
 @Injectable()
 export class GalleryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  private extractStorageKey(urlOrKey: string): string | null {
+    if (!urlOrKey) return null;
+    if (urlOrKey.startsWith("tenants/")) return urlOrKey;
+    const match = urlOrKey.match(/tenants\/[^?#]+/);
+    if (match) return match[0];
+    if (urlOrKey.startsWith("uploads/")) return urlOrKey;
+    return null;
+  }
 
   async getGalleryOverview(schoolId: string) {
     const school = await this.prisma.school.findUnique({
@@ -142,7 +155,32 @@ export class GalleryService {
   }
 
   async deleteAlbum(schoolId: string, albumId: string) {
-    await this.getAlbumById(schoolId, albumId);
+    const album = await this.getAlbumById(schoolId, albumId);
+
+    const photos = await this.prisma.galleryPhoto.findMany({
+      where: { albumId },
+      select: { url: true },
+    });
+    for (const p of photos) {
+      const key = this.extractStorageKey(p.url);
+      if (key) {
+        try {
+          await this.storageService.deleteObject(key);
+        } catch {
+          // Best-effort cleanup
+        }
+      }
+    }
+    if (album.coverUrl) {
+      const coverKey = this.extractStorageKey(album.coverUrl);
+      if (coverKey) {
+        try {
+          await this.storageService.deleteObject(coverKey);
+        } catch {
+          // Best-effort cleanup
+        }
+      }
+    }
 
     await this.prisma.galleryAlbum.delete({
       where: { id: albumId },
@@ -188,13 +226,33 @@ export class GalleryService {
       throw new NotFoundException("Photo not found");
     }
 
+    const key = this.extractStorageKey(photo.url);
+    if (key) {
+      try {
+        await this.storageService.deleteObject(key);
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+
     await this.prisma.galleryPhoto.delete({
       where: { id: photoId },
     });
 
+    const album = await this.prisma.galleryAlbum.findUnique({
+      where: { id: albumId },
+    });
+    const updateData: any = { photosCount: { decrement: 1 } };
+    if (album?.coverUrl === photo.url) {
+      const remainingPhoto = await this.prisma.galleryPhoto.findFirst({
+        where: { albumId, id: { not: photoId } },
+      });
+      updateData.coverUrl = remainingPhoto ? remainingPhoto.url : null;
+    }
+
     await this.prisma.galleryAlbum.update({
       where: { id: albumId },
-      data: { photosCount: { decrement: 1 } },
+      data: updateData,
     });
 
     return { message: "Photo deleted successfully" };
@@ -244,6 +302,15 @@ export class GalleryService {
 
     if (!asset) {
       throw new NotFoundException("Media asset not found");
+    }
+
+    const key = this.extractStorageKey(asset.filename) || this.extractStorageKey(asset.url);
+    if (key) {
+      try {
+        await this.storageService.deleteObject(key);
+      } catch {
+        // Best-effort cleanup
+      }
     }
 
     await this.prisma.mediaAsset.delete({

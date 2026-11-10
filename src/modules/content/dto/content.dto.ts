@@ -69,6 +69,16 @@ export class UpdateContentDto {
   @IsOptional()
   principalPhotoUrl?: string;
 
+  @ApiPropertyOptional({ example: "https://.../logo.png" })
+  @IsString()
+  @IsOptional()
+  logoUrl?: string;
+
+  @ApiPropertyOptional({ example: "https://.../cover.jpg" })
+  @IsString()
+  @IsOptional()
+  coverUrl?: string;
+
   @ApiPropertyOptional({ example: "To cultivate empathetic scholars..." })
   @IsString()
   @IsOptional()

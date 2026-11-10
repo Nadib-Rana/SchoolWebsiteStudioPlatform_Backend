@@ -106,14 +106,18 @@ export class ContentService {
       schoolName,
       schoolCode,
       schoolType,
+      logoUrl,
       ...profileData
     } = dto;
     const established = dto.established ?? establishedYear;
 
-    if (schoolName) {
+    if (schoolName || logoUrl !== undefined) {
       await this.prisma.school.update({
         where: { id: schoolId },
-        data: { name: schoolName },
+        data: {
+          ...(schoolName ? { name: schoolName } : {}),
+          ...(logoUrl !== undefined ? { logoUrl } : {}),
+        },
       });
     }
 

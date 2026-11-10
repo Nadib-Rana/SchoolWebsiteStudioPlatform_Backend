@@ -235,6 +235,7 @@ model SchoolProfile {
   principalTitle     String?  @default("Principal & Head Administrator") @map("principal_title")
   principalBio       String?  @db.Text @map("principal_bio")
   principalPhotoUrl  String?  @map("principal_photo_url")
+  coverUrl           String?  @map("cover_url")
   visionStatement    String?  @db.Text @map("vision_statement")
   missionStatement   String?  @db.Text @map("mission_statement")
   address            String?  @default("142 Northfield Avenue, Riverdale, NY 10471")
