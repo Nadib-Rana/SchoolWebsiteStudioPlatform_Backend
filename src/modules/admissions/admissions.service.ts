@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { MailService } from "../mail/mail.service";
 import {
   ApplyAdmissionDto,
   AdmissionQueryDto,
@@ -13,39 +14,28 @@ import {
 
 @Injectable()
 export class AdmissionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async apply(dto: ApplyAdmissionDto) {
     const slug = dto.schoolSlug.toLowerCase().trim();
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        slug,
-      );
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
     const school = await this.prisma.school.findFirst({
-      where: {
-        OR: [{ slug }, ...(isUuid ? [{ id: slug }] : [])],
-        deletedAt: null,
-      },
-      include: {
-        settings: true,
-      },
+      where: { OR: [{ slug }, ...(isUuid ? [{ id: slug }] : [])], deletedAt: null },
+      include: { settings: true },
     });
 
-    if (!school) {
-      throw new NotFoundException(`School '${dto.schoolSlug}' not found`);
-    }
+    if (!school) throw new NotFoundException(`School '${dto.schoolSlug}' not found`);
 
     if (!school.isPublished) {
-      throw new ForbiddenException(
-        "This school website is currently unpublished or in maintenance mode.",
-      );
+      throw new ForbiddenException("This school website is currently unpublished or in maintenance mode.");
     }
 
     if (school.settings && school.settings.allowPublicAdmission === false) {
-      throw new ForbiddenException(
-        "Public admissions are currently closed for this school.",
-      );
+      throw new ForbiddenException("Public admissions are currently closed for this school.");
     }
 
     // Generate a unique application number: ADM-YEAR-RANDOM
@@ -179,12 +169,28 @@ export class AdmissionsService {
       throw new NotFoundException("Admission application not found");
     }
 
-    return this.prisma.admissionApplication.update({
+    const updated = await this.prisma.admissionApplication.update({
       where: { id: appId },
       data: {
         status: dto.status,
         ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
       },
     });
+
+    if (application.guardianEmail) {
+      this.mailService
+        .sendMail({
+          to: application.guardianEmail,
+          subject: `Admission Application ${application.applicationNumber} - Status Updated`,
+          template: "notification",
+          context: {
+            title: `Application Status: ${dto.status.replace(/_/g, " ")}`,
+            message: `Dear ${application.guardianName},\n\nThe admission application for ${application.studentName} (${application.applicationNumber}) has been updated to: ${dto.status.replace(/_/g, " ")}.\n\n${dto.notes || "Please check your application portal for further instructions."}`,
+          },
+        })
+        .catch(() => {});
+    }
+
+    return updated;
   }
 }
