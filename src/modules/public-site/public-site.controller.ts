@@ -133,4 +133,17 @@ export class PublicSiteController {
   ) {
     return this.publicSiteService.updateInquiryStatus(id, inquiryId, dto);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, TenantGuard, SchoolRolesGuard)
+  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
+  @Delete("schools/:id/inquiries/:inquiryId")
+  @ApiOperation({ summary: "Delete a contact inquiry" })
+  @ResponseMessage("Inquiry deleted successfully")
+  async deleteInquiry(
+    @Param("id") id: string,
+    @Param("inquiryId", ParseUUIDPipe) inquiryId: string,
+  ) {
+    return this.publicSiteService.deleteInquiry(id, inquiryId);
+  }
 }

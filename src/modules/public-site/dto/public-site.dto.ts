@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional } from "class-validator";
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsBoolean } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class ContactInquiryDto {
@@ -47,4 +47,16 @@ export class UpdateInquiryStatusDto {
   @IsString()
   @IsOptional()
   responseNotes?: string;
+
+  @ApiPropertyOptional({
+    example: "Dear Sarah, thank you for reaching out. Please find attached...",
+  })
+  @IsString()
+  @IsOptional()
+  replyMessage?: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsBoolean()
+  @IsOptional()
+  sendEmailReply?: boolean;
 }

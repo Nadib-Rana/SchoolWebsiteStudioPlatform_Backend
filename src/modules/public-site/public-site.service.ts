@@ -116,6 +116,10 @@ export class PublicSiteService {
     return this.inquiryService.updateInquiryStatus(schoolId, inquiryId, dto);
   }
 
+  async deleteInquiry(schoolId: string, inquiryId: string) {
+    return this.inquiryService.deleteInquiry(schoolId, inquiryId);
+  }
+
   async getPublicNotice(identifier: string, noticeIdOrSlug: string) {
     const school = await this.resolvePublishedSchool(identifier);
     return this.resourceService.getPublicNotice(school.id, noticeIdOrSlug);
