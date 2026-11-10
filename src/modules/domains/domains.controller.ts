@@ -18,7 +18,7 @@ import { SchoolRolesGuard } from "../../common/guards/school-roles.guard";
 import { SchoolRoles } from "../../common/decorators/school-roles.decorator";
 import { ResponseMessage } from "../../common/decorators/response-message.decorator";
 import { SchoolRole } from "@prisma/client";
-import { CreateDomainDto } from "./dto/domains.dto";
+import { CreateDomainDto, VerifyDomainDto } from "./dto/domains.dto";
 
 @ApiTags("Custom Domains")
 @ApiBearerAuth()
@@ -53,8 +53,9 @@ export class DomainsController {
   async verifyDomain(
     @Param("id") id: string,
     @Param("domainId", ParseUUIDPipe) domainId: string,
+    @Body() dto?: VerifyDomainDto,
   ) {
-    return this.domainsService.verifyDomain(id, domainId);
+    return this.domainsService.verifyDomain(id, domainId, dto?.simulate);
   }
 
   @Post(":domainId/set-primary")

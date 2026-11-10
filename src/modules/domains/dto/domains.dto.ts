@@ -12,3 +12,10 @@ export class CreateDomainDto {
   @IsOptional()
   isPrimary?: boolean;
 }
+
+export class VerifyDomainDto {
+  @ApiPropertyOptional({ default: false, description: "Simulate successful verification for testing/demo" })
+  @IsBoolean()
+  @IsOptional()
+  simulate?: boolean;
+}
