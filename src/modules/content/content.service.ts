@@ -107,16 +107,18 @@ export class ContentService {
       schoolCode,
       schoolType,
       logoUrl,
+      faviconUrl,
       ...profileData
     } = dto;
     const established = dto.established ?? establishedYear;
 
-    if (schoolName || logoUrl !== undefined) {
+    if (schoolName || logoUrl !== undefined || faviconUrl !== undefined) {
       await this.prisma.school.update({
         where: { id: schoolId },
         data: {
           ...(schoolName ? { name: schoolName } : {}),
           ...(logoUrl !== undefined ? { logoUrl } : {}),
+          ...(faviconUrl !== undefined ? { faviconUrl } : {}),
         },
       });
     }

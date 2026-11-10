@@ -4,6 +4,8 @@ export const ALLOWED_MIME_TYPES = [
   "image/webp",
   "image/gif",
   "image/svg+xml",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
   "application/pdf",
 ] as const;
 
@@ -14,6 +16,7 @@ export const ALLOWED_EXTENSIONS = [
   ".webp",
   ".gif",
   ".svg",
+  ".ico",
   ".pdf",
 ] as const;
 

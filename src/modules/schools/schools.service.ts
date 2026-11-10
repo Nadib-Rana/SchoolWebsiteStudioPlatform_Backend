@@ -91,6 +91,7 @@ export class SchoolsService {
           ? { customDomain: dto.customDomain }
           : {}),
         ...(dto.logoUrl !== undefined ? { logoUrl: dto.logoUrl } : {}),
+        ...(dto.faviconUrl !== undefined ? { faviconUrl: dto.faviconUrl } : {}),
         ...(dto.isPublished !== undefined
           ? { isPublished: dto.isPublished }
           : {}),

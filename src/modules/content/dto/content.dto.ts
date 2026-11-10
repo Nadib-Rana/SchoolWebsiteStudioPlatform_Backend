@@ -74,6 +74,11 @@ export class UpdateContentDto {
   @IsOptional()
   logoUrl?: string;
 
+  @ApiPropertyOptional({ example: "https://.../favicon.ico" })
+  @IsString()
+  @IsOptional()
+  faviconUrl?: string;
+
   @ApiPropertyOptional({ example: "https://.../cover.jpg" })
   @IsString()
   @IsOptional()

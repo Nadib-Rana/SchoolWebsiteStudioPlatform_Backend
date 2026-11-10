@@ -31,6 +31,11 @@ export class CreateSchoolDto {
   @IsOptional()
   logoUrl?: string;
 
+  @ApiPropertyOptional({ example: "/icons/favicon.ico" })
+  @IsString()
+  @IsOptional()
+  faviconUrl?: string;
+
   @ApiPropertyOptional({ enum: SchoolPlan, default: SchoolPlan.PROFESSIONAL })
   @IsEnum(SchoolPlan)
   @IsOptional()
@@ -52,6 +57,11 @@ export class UpdateSchoolDto {
   @IsString()
   @IsOptional()
   logoUrl?: string;
+
+  @ApiPropertyOptional({ example: "/icons/favicon.ico" })
+  @IsString()
+  @IsOptional()
+  faviconUrl?: string;
 
   @ApiPropertyOptional({ example: true })
   @IsBoolean()
