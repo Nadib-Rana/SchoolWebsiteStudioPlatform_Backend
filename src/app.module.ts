@@ -46,6 +46,7 @@ import { SettingsModule } from "./modules/settings/settings.module";
 import { PublishingModule } from "./modules/publishing/publishing.module";
 import { PublicSiteModule } from "./modules/public-site/public-site.module";
 import { AdmissionsModule } from "./modules/admissions/admissions.module";
+import { AuditModule } from "./modules/audit/audit.module";
 
 // App Core Controller & Service
 import { AppController } from "./app.controller";
@@ -100,6 +101,7 @@ import { AppService } from "./app.service";
     PublishingModule,
     PublicSiteModule,
     AdmissionsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [

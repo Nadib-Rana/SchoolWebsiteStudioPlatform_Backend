@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { AuditService } from "../audit/audit.service";
 import { PublishStatus } from "@prisma/client";
 
 @Injectable()
 export class SchoolOverviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async getOverview(schoolId: string) {
     const school = await this.prisma.school.findUnique({
@@ -88,53 +92,14 @@ export class SchoolOverviewService {
       },
     ];
 
-    // 5. Recent activities
-    const recentNotices = await this.prisma.notice.findMany({
-      where: { schoolId },
-      orderBy: { updatedAt: "desc" },
-      take: 2,
-    });
-
-    const recentEvents = await this.prisma.schoolEvent.findMany({
-      where: { schoolId },
-      orderBy: { updatedAt: "desc" },
-      take: 1,
-    });
-
-    const activities = [
-      {
-        initials: "AR",
-        title: "Homepage hero updated",
-        detail: "Amina Rahman · 24 min ago",
-        tone: "blue",
-      },
-      ...(recentNotices.length > 0
-        ? [
-            {
-              initials: "MK",
-              title: `Notice: ${recentNotices[0].title}`,
-              detail: `Published · ${recentNotices[0].category}`,
-              tone: "green",
-            },
-          ]
-        : []),
-      ...(recentEvents.length > 0
-        ? [
-            {
-              initials: "AR",
-              title: `Event added: ${recentEvents[0].title}`,
-              detail: `Scheduled for ${recentEvents[0].venue || "Auditorium"}`,
-              tone: "orange",
-            },
-          ]
-        : []),
-      {
-        initials: "SJ",
-        title: "Teacher profile updated",
-        detail: "Sara Jahan · Science Dept",
-        tone: "violet",
-      },
-    ];
+    // 5. Recent real audit log activities
+    const realLogs = await this.auditService.getSchoolLogs(schoolId, 5);
+    const activities = realLogs.map((log) => ({
+      initials: log.initials,
+      title: log.title,
+      detail: log.detail,
+      tone: log.tone,
+    }));
 
     // 6. Integrations sync logs
     const integrations = await this.prisma.schoolIntegration.findMany({
