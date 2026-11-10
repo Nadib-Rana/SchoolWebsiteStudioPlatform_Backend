@@ -84,6 +84,12 @@ export class AddMemberDto {
   role: SchoolRole;
 }
 
+export class UpdateMemberRoleDto {
+  @ApiProperty({ enum: SchoolRole })
+  @IsEnum(SchoolRole)
+  role: SchoolRole;
+}
+
 export class OnboardingDto {
   @ApiProperty({ example: "Riverside Academy" })
   @IsString()

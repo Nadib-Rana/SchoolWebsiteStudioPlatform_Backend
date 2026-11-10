@@ -8,6 +8,7 @@ import {
   UpdateSchoolDto,
   OnboardingDto,
   AddMemberDto,
+  UpdateMemberRoleDto,
 } from "./dto/school.dto";
 import { SchoolMembersService } from "./school-members.service";
 import { SchoolOverviewService } from "./school-overview.service";
@@ -106,6 +107,14 @@ export class SchoolsService {
 
   async addMember(schoolId: string, dto: AddMemberDto) {
     return this.membersService.addMember(schoolId, dto);
+  }
+
+  async updateMemberRole(
+    schoolId: string,
+    memberId: string,
+    dto: UpdateMemberRoleDto,
+  ) {
+    return this.membersService.updateMemberRole(schoolId, memberId, dto);
   }
 
   async removeMember(schoolId: string, memberId: string) {

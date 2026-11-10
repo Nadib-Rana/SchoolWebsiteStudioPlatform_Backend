@@ -25,6 +25,7 @@ import {
   UpdateSchoolDto,
   OnboardingDto,
   AddMemberDto,
+  UpdateMemberRoleDto,
 } from "./dto/school.dto";
 
 @ApiTags("Schools")
@@ -107,6 +108,19 @@ export class SchoolsController {
   @ResponseMessage("Member added successfully")
   async addMember(@Param("id") id: string, @Body() dto: AddMemberDto) {
     return this.schoolsService.addMember(id, dto);
+  }
+
+  @Patch(":id/members/:memberId")
+  @UseGuards(TenantGuard, SchoolRolesGuard)
+  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
+  @ApiOperation({ summary: "Update team member role" })
+  @ResponseMessage("Member role updated successfully")
+  async updateMemberRole(
+    @Param("id") id: string,
+    @Param("memberId", ParseUUIDPipe) memberId: string,
+    @Body() dto: UpdateMemberRoleDto,
+  ) {
+    return this.schoolsService.updateMemberRole(id, memberId, dto);
   }
 
   @Delete(":id/members/:memberId")
