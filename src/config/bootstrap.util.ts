@@ -12,6 +12,11 @@ export function configureCors(
   const corsOriginsConfig = configService.get<string[] | string>(
     "app.corsOrigins",
   );
+  const frontendUrl = configService.get<string>("app.frontendUrl");
+  const isWildcard =
+    corsOriginsConfig === "*" ||
+    (Array.isArray(corsOriginsConfig) && corsOriginsConfig.includes("*"));
+
   const configuredOrigins = Array.isArray(corsOriginsConfig)
     ? corsOriginsConfig
     : typeof corsOriginsConfig === "string" && corsOriginsConfig !== "*"
@@ -25,11 +30,15 @@ export function configureCors(
     "http://localhost:8080",
     "http://localhost:4000",
   ];
+  if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
+    allowedOrigins.push(frontendUrl);
+  }
 
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const isAllowed =
+        isWildcard ||
         allowedOrigins.includes(origin) ||
         /^http:\/\/localhost(:[0-9]+)?$/.test(origin) ||
         /^http:\/\/127\.0\.0\.1(:[0-9]+)?$/.test(origin);
