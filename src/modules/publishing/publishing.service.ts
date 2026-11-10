@@ -146,9 +146,17 @@ export class PublishingService {
         where: { schoolId },
         data: {
           activeTheme: draft.activeTheme || themeConfig.activeTheme,
-          selectedTemplate:
-            draft.selectedTemplate || themeConfig.selectedTemplate,
+          selectedTemplate: draft.selectedTemplate || themeConfig.selectedTemplate,
           primaryColor: draft.primaryColor || themeConfig.primaryColor,
+          secondaryColor: draft.secondaryColor || themeConfig.secondaryColor,
+          accentColor: draft.accentColor || themeConfig.accentColor,
+          fontHeading: draft.fontHeading || themeConfig.fontHeading,
+          fontBody: draft.fontBody || themeConfig.fontBody,
+          buttonRadius: draft.buttonRadius || themeConfig.buttonRadius,
+          buttonShadow: draft.buttonShadow || themeConfig.buttonShadow,
+          cardStyle: draft.cardStyle || themeConfig.cardStyle,
+          headerLayout: draft.headerLayout || themeConfig.headerLayout,
+          footerLayout: draft.footerLayout || themeConfig.footerLayout,
           draftConfig: null,
         },
       });
