@@ -87,3 +87,59 @@ export async function validateTenantDeletePermission(
     );
   }
 }
+
+export interface NormalizedStorageConfig {
+  endPoint: string;
+  port: number;
+  useSSL: boolean;
+}
+
+export function normalizeStorageEndpoint(
+  rawEndpoint?: string,
+  rawPort?: number,
+  rawUseSSL?: boolean,
+): NormalizedStorageConfig | null {
+  if (!rawEndpoint) return null;
+  let endpoint = rawEndpoint.trim();
+  if (!endpoint) return null;
+
+  let useSSL = Boolean(rawUseSSL);
+  if (/^https:\/\//i.test(endpoint)) {
+    useSSL = true;
+  }
+
+  endpoint = endpoint.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+
+  let port = rawPort;
+  if (endpoint.includes(":")) {
+    const parts = endpoint.split(":");
+    endpoint = parts[0];
+    port = parseInt(parts[1], 10);
+  }
+
+  if (useSSL) {
+    if (!port || port === 9000) {
+      port = 443;
+    }
+  } else {
+    if (!port) {
+      port = 9000;
+    }
+  }
+
+  return { endPoint: endpoint, port, useSSL };
+}
+
+export function getPublicBucketPolicy(bucketName: string): string {
+  return JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: { AWS: ["*"] },
+        Action: ["s3:GetObject"],
+        Resource: [`arn:aws:s3:::${bucketName}/*`],
+      },
+    ],
+  });
+}

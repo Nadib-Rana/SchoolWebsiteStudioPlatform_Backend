@@ -1,83 +1,58 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Client as MinioClient } from "minio";
 import * as path from "path";
 import * as crypto from "crypto";
+import { normalizeStorageEndpoint, getPublicBucketPolicy } from "./storage.helper";
 
 @Injectable()
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private minioClient: MinioClient | null = null;
   private readonly defaultBucket: string;
-  private readonly defaultExpirySeconds = 900; // 15 mins
+  private readonly defaultExpirySeconds = 900;
 
   constructor(private readonly configService: ConfigService) {
-    this.defaultBucket = this.configService.get<string>(
-      "storage.bucket",
-      "nest-starter-uploads",
-    );
+    this.defaultBucket = this.configService.get<string>("storage.bucket", "nest-starter-uploads");
   }
 
   async onModuleInit() {
-    const endPoint = this.configService.get<string>("storage.endpoint");
-    const port = this.configService.get<number>("storage.port", 9000);
-    const useSSL = this.configService.get<boolean>("storage.useSSL", false);
+    const rawEndPoint = this.configService.get<string>("storage.endpoint");
+    const rawPort = this.configService.get<number>("storage.port", 9000);
+    const rawUseSSL = this.configService.get<boolean>("storage.useSSL", false);
     const accessKey = this.configService.get<string>("storage.accessKey");
     const secretKey = this.configService.get<string>("storage.secretKey");
 
-    if (endPoint && accessKey && secretKey) {
-      try {
-        this.minioClient = new MinioClient({
-          endPoint,
-          port,
-          useSSL,
-          accessKey,
-          secretKey,
-        });
+    const normalized = normalizeStorageEndpoint(rawEndPoint, rawPort, rawUseSSL);
+    if (!normalized || !accessKey || !secretKey) return;
 
-        // Ensure default bucket exists
-        const bucketExists = await this.minioClient.bucketExists(
-          this.defaultBucket,
-        );
-        if (!bucketExists) {
-          const region = this.configService.get<string>(
-            "storage.region",
-            "us-east-1",
-          );
-          await this.minioClient.makeBucket(this.defaultBucket, region);
-          this.logger.log(
-            `Created default storage bucket: ${this.defaultBucket}`,
-          );
-        }
+    try {
+      const client = new MinioClient({
+        endPoint: normalized.endPoint,
+        port: normalized.port,
+        useSSL: normalized.useSSL,
+        accessKey,
+        secretKey,
+      });
 
-        // Allow public read access so browser clients can directly display images/media
-        try {
-          const publicReadPolicy = {
-            Version: "2012-10-17",
-            Statement: [
-              {
-                Effect: "Allow",
-                Principal: { AWS: ["*"] },
-                Action: ["s3:GetObject"],
-                Resource: [`arn:aws:s3:::${this.defaultBucket}/*`],
-              },
-            ],
-          };
-          await this.minioClient.setBucketPolicy(
-            this.defaultBucket,
-            JSON.stringify(publicReadPolicy),
-          );
-        } catch {
-          // If already set or provider restricts policy modification, ignore
-        }
-
-        this.logger.log("✅ Object storage (MinIO/S3) configured successfully");
-      } catch (err) {
-        this.logger.warn(
-          "⚠️ Object storage connection not established. Uploads will use fallback URLs.",
-          err instanceof Error ? err.message : err,
-        );
+      const exists = await client.bucketExists(this.defaultBucket);
+      if (!exists) {
+        const region = this.configService.get<string>("storage.region", "us-east-1");
+        await client.makeBucket(this.defaultBucket, region);
+        this.logger.log(`Created default storage bucket: ${this.defaultBucket}`);
       }
+
+      try {
+        await client.setBucketPolicy(this.defaultBucket, getPublicBucketPolicy(this.defaultBucket));
+      } catch {
+        // Ignore if provider restricts policy modification
+      }
+
+      this.minioClient = client;
+      this.logger.log(`✅ Storage connected: ${normalized.endPoint}:${normalized.port} (SSL: ${normalized.useSSL})`);
+    } catch (err: any) {
+      this.minioClient = null;
+      this.logger.warn(`⚠️ Storage connection skipped (${err?.message || err}). Fallback active.`);
     }
   }
 
@@ -87,31 +62,20 @@ export class StorageService implements OnModuleInit {
 
   generateKey(folder = "uploads", originalName = "file", schoolId?: string): string {
     const ext = path.extname(originalName);
-    const randomHash = crypto.randomBytes(8).toString("hex");
-    const timestamp = Date.now();
-    if (schoolId) {
-      return `tenants/${schoolId}/${folder}/${timestamp}-${randomHash}${ext}`;
-    }
-    return `${folder}/${timestamp}-${randomHash}${ext}`;
+    const hash = crypto.randomBytes(8).toString("hex");
+    const prefix = schoolId ? `tenants/${schoolId}/${folder}` : folder;
+    return `${prefix}/${Date.now()}-${hash}${ext}`;
   }
 
   getObjectUrl(key: string, bucket?: string): string {
-    if (!key) return "";
-    if (
-      key.startsWith("http://") ||
-      key.startsWith("https://") ||
-      key.startsWith("data:")
-    ) {
-      return key;
+    if (!key || key.startsWith("http://") || key.startsWith("https://") || key.startsWith("data:")) {
+      return key || "";
     }
     const publicUrl = this.configService.get<string>("storage.publicUrl", "");
     const b = bucket || this.defaultBucket;
     if (publicUrl) {
       const cleanUrl = publicUrl.replace(/\/$/, "");
-      if (cleanUrl.endsWith(`/${b}`)) {
-        return `${cleanUrl}/${key.replace(/^\//, "")}`;
-      }
-      return `${cleanUrl}/${b}/${key.replace(/^\//, "")}`;
+      return cleanUrl.endsWith(`/${b}`) ? `${cleanUrl}/${key.replace(/^\//, "")}` : `${cleanUrl}/${b}/${key.replace(/^\//, "")}`;
     }
     return key;
   }
@@ -123,42 +87,25 @@ export class StorageService implements OnModuleInit {
   ): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
     const b = bucket || this.defaultBucket;
     const expiry = expirySeconds || this.defaultExpirySeconds;
-
     if (!this.minioClient) {
       const fallbackUrl = this.getObjectUrl(key, b);
       return { uploadUrl: fallbackUrl, key, publicUrl: fallbackUrl };
     }
-
     try {
-      const uploadUrl = await this.minioClient.presignedPutObject(
-        b,
-        key,
-        expiry,
-      );
-      const publicUrl = this.getObjectUrl(key, b);
-      return { uploadUrl, key, publicUrl };
+      const uploadUrl = await this.minioClient.presignedPutObject(b, key, expiry);
+      return { uploadUrl, key, publicUrl: this.getObjectUrl(key, b) };
     } catch {
       const fallbackUrl = this.getObjectUrl(key, b);
       return { uploadUrl: fallbackUrl, key, publicUrl: fallbackUrl };
     }
   }
 
-  async getPresignedObjectUrl(
-    key: string,
-    bucket?: string,
-    expirySeconds?: number,
-  ): Promise<string> {
-    if (!this.minioClient) {
-      return this.getObjectUrl(key, bucket);
-    }
-
-    const b = bucket || this.defaultBucket;
-    const expiry = expirySeconds || this.defaultExpirySeconds;
-
+  async getPresignedObjectUrl(key: string, bucket?: string, expirySeconds?: number): Promise<string> {
+    if (!this.minioClient) return this.getObjectUrl(key, bucket);
     try {
-      return await this.minioClient.presignedGetObject(b, key, expiry);
+      return await this.minioClient.presignedGetObject(bucket || this.defaultBucket, key, expirySeconds || this.defaultExpirySeconds);
     } catch {
-      return this.getObjectUrl(key, b);
+      return this.getObjectUrl(key, bucket);
     }
   }
 
@@ -170,26 +117,24 @@ export class StorageService implements OnModuleInit {
   ): Promise<{ key: string; publicUrl: string }> {
     const b = bucket || this.defaultBucket;
     if (!this.minioClient) {
+      this.logger.warn(`MinIO not connected; returning fallback URL for ${key}`);
       return { key, publicUrl: this.getObjectUrl(key, b) };
     }
-
-    await this.minioClient.putObject(b, key, buffer, buffer.length, {
-      "Content-Type": mimeType || "application/octet-stream",
-    });
-
-    return {
-      key,
-      publicUrl: this.getObjectUrl(key, b),
-    };
+    try {
+      await this.minioClient.putObject(b, key, buffer, buffer.length, {
+        "Content-Type": mimeType || "application/octet-stream",
+      });
+      return { key, publicUrl: this.getObjectUrl(key, b) };
+    } catch (err: any) {
+      this.logger.error(`Failed to upload ${key} to bucket ${b}: ${err?.message || err}`);
+      throw new BadRequestException(`File upload to storage failed: ${err?.message || "Storage error"}`);
+    }
   }
 
   async deleteObject(key: string, bucket?: string): Promise<boolean> {
-    if (!this.minioClient) {
-      return true;
-    }
-    const b = bucket || this.defaultBucket;
+    if (!this.minioClient) return true;
     try {
-      await this.minioClient.removeObject(b, key);
+      await this.minioClient.removeObject(bucket || this.defaultBucket, key);
       return true;
     } catch (err) {
       this.logger.error(`Failed to delete object: ${key}`, err);
