@@ -5,8 +5,8 @@ export default registerAs("app", () => ({
   name: process.env.APP_NAME || "Nest Starter Template",
   port: parseInt(process.env.PORT || "3000", 10),
   apiPrefix: process.env.API_PREFIX || "api/v1",
-  appUrl: process.env.APP_URL || "http://localhost:3000",
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  appUrl: process.env.APP_URL || "https://profilebackendapi.ashyshop.com",
+  frontendUrl: process.env.FRONTEND_URL || "https://nadib.ashyshop.com",
   corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : "*",

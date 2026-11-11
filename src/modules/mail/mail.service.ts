@@ -26,7 +26,7 @@ export class MailService {
       ),
       appUrl: this.configService.get<string>(
         "app.appUrl",
-        "http://localhost:3000",
+        "https://profilebackendapi.ashyshop.com",
       ),
       year: new Date().getFullYear(),
     };
@@ -66,7 +66,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       "app.frontendUrl",
-      "http://localhost:5173",
+      "https://nadib.ashyshop.com",
     );
     return this.sendMail({
       to,
