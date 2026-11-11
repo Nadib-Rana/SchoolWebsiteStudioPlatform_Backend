@@ -47,7 +47,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl dumb-init curl
 
 ENV NODE_ENV=production
-ENV PORT=4000
+ENV PORT=3000
 
 # Use standard non-root node user
 USER node
@@ -60,11 +60,11 @@ COPY --chown=node:node --from=builder /app/prisma ./prisma
 COPY --chown=node:node --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --chown=node:node --from=builder /app/templates ./templates
 
-EXPOSE 4000
+EXPOSE 3000
 
 # Health check to ensure service is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:4000/api/v1/health || exit 1
+  CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 

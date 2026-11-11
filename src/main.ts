@@ -56,9 +56,9 @@ async function bootstrap() {
   // 7. Enable Graceful Shutdown Hooks
   app.enableShutdownHooks();
 
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
   logger.log(
-    `🚀 ${appName} server running at: http://localhost:${port}/${apiPrefix}`,
+    `🚀 ${appName} server running at: http://0.0.0.0:${port}/${apiPrefix}`,
   );
 }
 
