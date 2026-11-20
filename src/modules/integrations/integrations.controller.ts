@@ -17,7 +17,10 @@ import { SchoolRolesGuard } from "../../common/guards/school-roles.guard";
 import { SchoolRoles } from "../../common/decorators/school-roles.decorator";
 import { ResponseMessage } from "../../common/decorators/response-message.decorator";
 import { SchoolRole } from "@prisma/client";
-import { ConfigureIntegrationDto } from "./dto/integrations.dto";
+import {
+  ConfigureIntegrationDto,
+  TestErpConnectionDto,
+} from "./dto/integrations.dto";
 
 @ApiTags("Integrations & ERP Sync")
 @ApiBearerAuth()
@@ -43,6 +46,21 @@ export class IntegrationsController {
     @Body() dto: ConfigureIntegrationDto,
   ) {
     return this.integrationsService.configureIntegration(id, dto);
+  }
+
+  @Post("erp/test")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SchoolRolesGuard)
+  @SchoolRoles(SchoolRole.OWNER, SchoolRole.ADMIN)
+  @ApiOperation({
+    summary: "Test live School ERP connection using x-website-key",
+  })
+  @ResponseMessage("ERP connection verified successfully")
+  async testErpConnection(
+    @Param("id") id: string,
+    @Body() dto: TestErpConnectionDto,
+  ) {
+    return this.integrationsService.testErpConnection(id, dto);
   }
 
   @Post(":type/sync")

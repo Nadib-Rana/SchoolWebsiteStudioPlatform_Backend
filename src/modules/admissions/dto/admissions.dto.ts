@@ -16,53 +16,89 @@ export class ApplyAdmissionDto {
   @IsNotEmpty()
   schoolSlug: string;
 
-  @ApiProperty({ example: "Liam Vance" })
+  @ApiPropertyOptional({ example: "Arafat" })
   @IsString()
-  @IsNotEmpty()
-  studentName: string;
+  @IsOptional()
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: "Rahman" })
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @ApiPropertyOptional({ example: "Arafat Rahman" })
+  @IsString()
+  @IsOptional()
+  studentName?: string;
 
   @ApiProperty({ example: "2012-06-15" })
   @IsDateString()
   dateOfBirth: string;
 
-  @ApiProperty({ example: "Male" })
+  @ApiProperty({ example: "MALE" })
   @IsString()
   @IsNotEmpty()
   gender: string;
+
+  @ApiPropertyOptional({ example: "01711000000" })
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @ApiPropertyOptional({ example: "arafat@example.com" })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiPropertyOptional({ example: "O+" })
+  @IsString()
+  @IsOptional()
+  bloodGroup?: string;
 
   @ApiProperty({ example: "Grade 7" })
   @IsString()
   @IsNotEmpty()
   applyingForGrade: string;
 
+  @ApiPropertyOptional({ example: "class-uuid-from-erp" })
+  @IsString()
+  @IsOptional()
+  appliedClassId?: string;
+
   @ApiPropertyOptional({ example: "St. Jude Elementary School" })
   @IsString()
   @IsOptional()
   previousSchool?: string;
 
-  @ApiProperty({ example: "Arthur Vance" })
+  @ApiProperty({ example: "Kamal Rahman" })
   @IsString()
   @IsNotEmpty()
   guardianName: string;
 
-  @ApiProperty({ example: "Father" })
+  @ApiProperty({ example: "FATHER" })
   @IsString()
   @IsNotEmpty()
   guardianRelationship: string;
 
-  @ApiProperty({ example: "+1 (555) 345-6789" })
+  @ApiProperty({ example: "01711000001" })
   @IsString()
   @IsNotEmpty()
   guardianPhone: string;
 
-  @ApiProperty({ example: "arthur.vance@example.com" })
+  @ApiPropertyOptional({ example: "parent@example.com" })
   @IsEmail()
-  guardianEmail: string;
+  @IsOptional()
+  guardianEmail?: string;
 
-  @ApiProperty({ example: "27 Lakeview Avenue, NY 10471" })
+  @ApiProperty({ example: "Dhaka, Bangladesh" })
   @IsString()
   @IsNotEmpty()
   address: string;
+
+  @ApiPropertyOptional({ example: "https://cdn.example.com/docs/cert.pdf" })
+  @IsString()
+  @IsOptional()
+  documentsUrl?: string;
 
   @ApiPropertyOptional()
   @IsObject()
@@ -71,18 +107,31 @@ export class ApplyAdmissionDto {
 }
 
 export class TrackAdmissionDto {
-  @ApiProperty({ example: "ADM-2026-8491" })
+  @ApiPropertyOptional({ example: "northfield-high" })
+  @IsString()
+  @IsOptional()
+  schoolSlug?: string;
+
+  @ApiProperty({ example: "ADM-2026-0001" })
   @IsString()
   @IsNotEmpty()
   applicationNumber: string;
 
-  @ApiProperty({
-    example: "+1 (555) 345-6789",
+  @ApiPropertyOptional({
+    example: "01711000000",
+    description: "Applicant or guardian phone/email identifier",
+  })
+  @IsString()
+  @IsOptional()
+  identifier?: string;
+
+  @ApiPropertyOptional({
+    example: "01711000001",
     description: "Guardian phone number required for verification",
   })
   @IsString()
-  @IsNotEmpty({ message: "Guardian phone number is required for tracking verification" })
-  guardianPhone: string;
+  @IsOptional()
+  guardianPhone?: string;
 }
 
 export class UpdateAdmissionStatusDto {

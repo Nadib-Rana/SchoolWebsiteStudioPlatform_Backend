@@ -33,6 +33,16 @@ export class AdmissionsController {
   constructor(private readonly admissionsService: AdmissionsService) {}
 
   @Public()
+  @Get("public/admissions/:schoolSlug/classes")
+  @ApiOperation({
+    summary: "Get open admission classes for a school (from ERP or local fallback)",
+  })
+  @ResponseMessage("Admission classes retrieved successfully")
+  async getPublicClasses(@Param("schoolSlug") schoolSlug: string) {
+    return this.admissionsService.getPublicClasses(schoolSlug);
+  }
+
+  @Public()
   @Post("public/admissions/apply")
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Submit public student admission application" })
@@ -50,8 +60,37 @@ export class AdmissionsController {
   async track(@Query() query: TrackAdmissionDto) {
     return this.admissionsService.track(
       query.applicationNumber,
-      query.guardianPhone,
+      query.identifier || query.guardianPhone,
+      query.schoolSlug,
     );
+  }
+
+  @Public()
+  @Post("public/admissions/track")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Track admission application status (POST)",
+  })
+  @ResponseMessage("Application status retrieved successfully")
+  async trackPost(@Body() body: TrackAdmissionDto) {
+    return this.admissionsService.track(
+      body.applicationNumber,
+      body.identifier || body.guardianPhone,
+      body.schoolSlug,
+    );
+  }
+
+  @Public()
+  @Get("public/:schoolSlug/alumni/verify")
+  @ApiOperation({
+    summary: "Verify alumni admission number against school ERP",
+  })
+  @ResponseMessage("Alumni verification completed")
+  async verifyAlumni(
+    @Param("schoolSlug") schoolSlug: string,
+    @Query("code") code: string,
+  ) {
+    return this.admissionsService.verifyAlumni(schoolSlug, code);
   }
 
   // --- Studio Admission Management (Authenticated) ---

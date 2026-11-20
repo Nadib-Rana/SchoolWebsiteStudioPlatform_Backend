@@ -53,12 +53,15 @@ enum PublishStatus {
 }
 
 enum AdmissionStatus {
+  PENDING
   SUBMITTED
   UNDER_REVIEW
   INTERVIEW_SCHEDULED
+  APPROVED
   ACCEPTED
   REJECTED
   WAITLISTED
+  CONVERTED
 }
 
 // ==========================================
@@ -624,6 +627,10 @@ model AdmissionApplication {
   dateOfBirth           DateTime        @map("date_of_birth")
   gender                String
   applyingForGrade      String          @map("applying_for_grade")
+  appliedClassId        String?         @map("applied_class_id")
+  studentPhone          String?         @map("student_phone")
+  studentEmail          String?         @map("student_email")
+  bloodGroup            String?         @map("blood_group")
   previousSchool        String?         @map("previous_school")
   guardianName          String          @map("guardian_name")
   guardianRelationship  String          @map("guardian_relationship")
@@ -633,6 +640,10 @@ model AdmissionApplication {
   documents             Json?
   status                AdmissionStatus @default(SUBMITTED)
   notes                 String?         @db.Text
+  interviewDate         DateTime?       @map("interview_date")
+  externalSource        String          @default("LOCAL") @map("external_source")
+  externalApplicationId String?         @map("external_application_id")
+  erpApplicationNumber  String?         @map("erp_application_number")
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
 

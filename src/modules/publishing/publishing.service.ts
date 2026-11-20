@@ -92,7 +92,55 @@ export class PublishingService {
     userId: string,
     dto: ReleaseVersionDto,
   ) {
-    // 1. Get full snapshot of site
+    // 1. Publish any draft theme FIRST so the version snapshot captures the live published state
+    const existingTheme = await this.prisma.schoolThemeConfig.findUnique({
+      where: { schoolId },
+    });
+
+    if (existingTheme?.draftConfig) {
+      const draft = existingTheme.draftConfig as any;
+      await this.prisma.schoolThemeConfig.update({
+        where: { schoolId },
+        data: {
+          activeTheme: draft.activeTheme || existingTheme.activeTheme,
+          selectedTemplate:
+            draft.selectedTemplate || existingTheme.selectedTemplate,
+          primaryColor: draft.primaryColor || existingTheme.primaryColor,
+          secondaryColor: draft.secondaryColor || existingTheme.secondaryColor,
+          accentColor: draft.accentColor || existingTheme.accentColor,
+          fontHeading: draft.fontHeading || existingTheme.fontHeading,
+          fontBody: draft.fontBody || existingTheme.fontBody,
+          buttonRadius: draft.buttonRadius || existingTheme.buttonRadius,
+          buttonShadow: draft.buttonShadow || existingTheme.buttonShadow,
+          cardStyle: draft.cardStyle || existingTheme.cardStyle,
+          headerLayout: draft.headerLayout || existingTheme.headerLayout,
+          footerLayout: draft.footerLayout || existingTheme.footerLayout,
+          draftConfig: null,
+        },
+      });
+    }
+
+    // 2. Publish draft pages, notices, and events + ensure school is marked as published
+    await Promise.all([
+      this.prisma.webPage.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+      this.prisma.notice.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+      this.prisma.schoolEvent.updateMany({
+        where: { schoolId, status: PublishStatus.DRAFT },
+        data: { status: PublishStatus.PUBLISHED },
+      }),
+      this.prisma.school.update({
+        where: { id: schoolId },
+        data: { isPublished: true },
+      }),
+    ]);
+
+    // 3. Capture full post-publish snapshot of the site
     const [school, profile, themeConfig, pages, menu] = await Promise.all([
       this.prisma.school.findUnique({ where: { id: schoolId } }),
       this.prisma.schoolProfile.findUnique({ where: { schoolId } }),
@@ -121,67 +169,21 @@ export class PublishingService {
       ),
     );
 
-    // 2. Mark older versions as not current
+    // 4. Mark older versions as not current and create the new version record
     await this.prisma.websiteVersion.updateMany({
       where: { schoolId, isCurrent: true },
       data: { isCurrent: false },
     });
 
-    // 3. Create version record
     const version = await this.prisma.websiteVersion.create({
       data: {
         schoolId,
         versionTag: dto.versionTag,
         summary: dto.summary,
         snapshotData,
-        publishedBy: dto.publishedBy || "Amina Rahman",
+        publishedBy: dto.publishedBy || userId || "Administrator",
         isCurrent: true,
       },
-    });
-
-    // 4. Publish any draft theme
-    if (themeConfig?.draftConfig) {
-      const draft = themeConfig.draftConfig as any;
-      await this.prisma.schoolThemeConfig.update({
-        where: { schoolId },
-        data: {
-          activeTheme: draft.activeTheme || themeConfig.activeTheme,
-          selectedTemplate: draft.selectedTemplate || themeConfig.selectedTemplate,
-          primaryColor: draft.primaryColor || themeConfig.primaryColor,
-          secondaryColor: draft.secondaryColor || themeConfig.secondaryColor,
-          accentColor: draft.accentColor || themeConfig.accentColor,
-          fontHeading: draft.fontHeading || themeConfig.fontHeading,
-          fontBody: draft.fontBody || themeConfig.fontBody,
-          buttonRadius: draft.buttonRadius || themeConfig.buttonRadius,
-          buttonShadow: draft.buttonShadow || themeConfig.buttonShadow,
-          cardStyle: draft.cardStyle || themeConfig.cardStyle,
-          headerLayout: draft.headerLayout || themeConfig.headerLayout,
-          footerLayout: draft.footerLayout || themeConfig.footerLayout,
-          draftConfig: null,
-        },
-      });
-    }
-
-    // 5. Publish draft pages, notices, and events
-    await Promise.all([
-      this.prisma.webPage.updateMany({
-        where: { schoolId, status: PublishStatus.DRAFT },
-        data: { status: PublishStatus.PUBLISHED },
-      }),
-      this.prisma.notice.updateMany({
-        where: { schoolId, status: PublishStatus.DRAFT },
-        data: { status: PublishStatus.PUBLISHED },
-      }),
-      this.prisma.schoolEvent.updateMany({
-        where: { schoolId, status: PublishStatus.DRAFT },
-        data: { status: PublishStatus.PUBLISHED },
-      }),
-    ]);
-
-    // 6. Ensure school is marked as published
-    await this.prisma.school.update({
-      where: { id: schoolId },
-      data: { isPublished: true },
     });
 
     return version;

@@ -35,8 +35,15 @@ async function bootstrap() {
     }),
   );
 
-  // 2. Body Parser Limit
-  app.use(json({ limit: "50mb" }));
+  // 2. Body Parser Limit (capture rawBody for HMAC webhook signature verification)
+  app.use(
+    json({
+      limit: "50mb",
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(urlencoded({ extended: true, limit: "50mb" }));
 
   // 3. CORS Setup
