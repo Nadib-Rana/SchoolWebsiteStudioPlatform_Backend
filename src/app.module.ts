@@ -28,7 +28,6 @@ import { UsersModule } from "./modules/users/users.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { MailModule } from "./modules/mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
-import { PostsModule } from "./modules/posts/posts.module";
 import { SchoolsModule } from "./modules/schools/schools.module";
 import { ContentModule } from "./modules/content/content.module";
 import { ThemeModule } from "./modules/theme/theme.module";
@@ -83,7 +82,6 @@ import { AppService } from "./app.service";
     AuthModule,
     UsersModule,
     HealthModule,
-    PostsModule,
     SchoolsModule,
     ContentModule,
     ThemeModule,
