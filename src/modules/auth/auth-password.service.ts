@@ -188,10 +188,16 @@ export class AuthPasswordService {
 
     const newHashedPassword = await HashUtil.hash(dto.newPassword);
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: newHashedPassword },
-    });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { password: newHashedPassword },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId, isRevoked: false },
+        data: { isRevoked: true },
+      }),
+    ]);
 
     return { message: "Password updated successfully" };
   }

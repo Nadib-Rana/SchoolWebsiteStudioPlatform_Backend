@@ -80,7 +80,10 @@ export class StorageController {
     summary: "Generate a presigned download URL for viewing/downloading files",
   })
   @ResponseMessage("Presigned download URL generated successfully")
-  async getPresignDownloadUrl(@Body() dto: PresignDownloadDto) {
+  async getPresignDownloadUrl(@Body() dto: PresignDownloadDto, @Req() req: any) {
+    if (req.user) {
+      await validateTenantDeletePermission(this.prisma, dto.key, req.user);
+    }
     const url = await this.storageService.getPresignedObjectUrl(
       dto.key,
       dto.bucket,

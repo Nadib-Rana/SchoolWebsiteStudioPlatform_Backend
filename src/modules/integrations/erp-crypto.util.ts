@@ -90,3 +90,52 @@ export function buildIdempotencyKey(parts: string[]): string {
     .slice(0, 32);
 }
 
+export function isUnsafePrivateHost(rawUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return true;
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return true;
+  }
+
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host === "metadata.google.internal"
+  ) {
+    return true;
+  }
+
+  // Block private IPv4 & link-local/cloud metadata ranges
+  const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const a = Number(ipv4Match[1]);
+    const b = Number(ipv4Match[2]);
+    if (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) {
+      return true;
+    }
+  }
+
+  // Block IPv6 private/link-local prefixes (fc00::/7, fe80::/10)
+  if (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) {
+    return true;
+  }
+
+  return false;
+}
+

@@ -26,6 +26,24 @@ async function bootstrap() {
   );
   const isProd = configService.get<string>("app.nodeEnv") === "production";
 
+  // 0. Fail-fast if production is missing strong JWT secrets
+  if (isProd) {
+    const jwtSecret = configService.get<string>("jwt.secret") || "";
+    const jwtRefresh = configService.get<string>("jwt.refreshSecret") || "";
+    if (
+      !jwtSecret ||
+      jwtSecret.includes("default_super_secret") ||
+      jwtSecret.length < 16 ||
+      !jwtRefresh ||
+      jwtRefresh.includes("default_super_secret") ||
+      jwtRefresh.length < 16
+    ) {
+      throw new Error(
+        "FATAL SECURITY ERROR: Strong JWT_SECRET and JWT_REFRESH_SECRET (>= 16 chars) are required in production.",
+      );
+    }
+  }
+
   // 1. Security Headers via Helmet
   app.use(
     helmet({
@@ -38,13 +56,13 @@ async function bootstrap() {
   // 2. Body Parser Limit (capture rawBody for HMAC webhook signature verification)
   app.use(
     json({
-      limit: "50mb",
+      limit: "5mb",
       verify: (req: any, _res, buf) => {
         req.rawBody = buf;
       },
     }),
   );
-  app.use(urlencoded({ extended: true, limit: "50mb" }));
+  app.use(urlencoded({ extended: true, limit: "5mb" }));
 
   // 3. CORS Setup
   configureCors(app, configService);

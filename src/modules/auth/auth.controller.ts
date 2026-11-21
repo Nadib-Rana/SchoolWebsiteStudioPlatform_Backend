@@ -15,6 +15,7 @@ import {
   ApiResponse,
 } from "@nestjs/swagger";
 import { Request } from "express";
+import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { Public } from "../../common/decorators/public.decorator";
@@ -38,6 +39,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("register")
   @ApiOperation({ summary: "Register a new user account" })
   @ApiResponse({ status: 201, description: "User registered successfully" })
@@ -47,6 +49,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Login with email/username and password" })
@@ -59,6 +62,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Refresh access token using refresh token" })
@@ -69,6 +73,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("verify-email")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Verify email with 6-digit OTP" })
@@ -78,6 +83,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("resend-otp")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Resend email verification OTP" })
@@ -87,6 +93,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Request a password reset code via email" })
@@ -96,6 +103,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Reset password using OTP code" })

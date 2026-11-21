@@ -8,7 +8,7 @@ import {
   HttpStatus,
   Logger,
 } from "@nestjs/common";
-import { normalizeErpBaseUrl } from "./erp-crypto.util";
+import { normalizeErpBaseUrl, isUnsafePrivateHost } from "./erp-crypto.util";
 
 export interface ErpTestResponse {
   connected: boolean;
@@ -322,6 +322,18 @@ export class ErpClientService {
       isAdminContext: boolean;
     },
   ): Promise<T> {
+    const isProd = process.env.NODE_ENV === "production";
+    if (isUnsafePrivateHost(url)) {
+      throw new BadRequestException(
+        "ERP Base URL must be a valid public HTTPS/HTTP host (private/local network addresses are blocked).",
+      );
+    }
+    if (isProd && !url.startsWith("https://")) {
+      throw new BadRequestException(
+        "ERP Base URL must use HTTPS in production.",
+      );
+    }
+
     const headers: Record<string, string> = {
       Accept: "application/json",
       "x-website-key": options.apiKey,

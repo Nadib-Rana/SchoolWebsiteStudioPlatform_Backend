@@ -9,7 +9,11 @@ export function setupSwagger(
   appName: string,
   port: number,
 ) {
-  const swaggerEnabled = configService.get<boolean>("swagger.enabled", true);
+  const isProd = configService.get<string>("app.nodeEnv") === "production";
+  const explicitSwagger = process.env.SWAGGER_ENABLED;
+  const swaggerEnabled = isProd
+    ? explicitSwagger === "true"
+    : configService.get<boolean>("swagger.enabled", true);
   if (!swaggerEnabled) return;
 
   const swaggerPath = configService.get<string>("swagger.path", "docs");

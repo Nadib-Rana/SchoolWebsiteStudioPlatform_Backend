@@ -123,6 +123,21 @@ describe("ERP Crypto & Client Utilities", () => {
         await expect(call).rejects.toThrow(ExceptionType);
       }
     });
+
+    it("blocks private/loopback/metadata SSRF URLs in ERP requests", async () => {
+      const unsafeUrls = [
+        "http://127.0.0.1:4000",
+        "http://localhost:8080",
+        "http://169.254.169.254/latest/meta-data",
+        "http://10.0.0.5/api/v1",
+        "http://192.168.1.1/api/v1",
+      ];
+      for (const badUrl of unsafeUrls) {
+        await expect(
+          service.testConnection(badUrl, "sk_web_test"),
+        ).rejects.toThrow(BadRequestException);
+      }
+    });
   });
 });
 
