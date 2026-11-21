@@ -30,7 +30,7 @@ import {
   MAX_UPLOAD_FILE_SIZE,
 } from "./storage.constants";
 import {
-  resolveUserSchoolId,
+  resolveAuthorizedSchoolId,
   validateFileExtAndMime,
   checkSchoolStorageQuota,
   validateTenantDeletePermission,
@@ -55,8 +55,13 @@ export class StorageController {
   async getPresignUploadUrl(@Body() dto: PresignUploadDto, @Req() req: any) {
     validateFileExtAndMime(dto.filename, dto.mimeType);
 
-    const schoolId =
-      dto.schoolId || (await resolveUserSchoolId(this.prisma, req.user?.id));
+    const requestedSchoolId =
+      dto.schoolId || (req.headers?.["x-school-id"] as string | undefined);
+    const schoolId = await resolveAuthorizedSchoolId(
+      this.prisma,
+      req.user,
+      requestedSchoolId,
+    );
 
     if (schoolId) {
       await checkSchoolStorageQuota(this.prisma, schoolId);
@@ -122,7 +127,17 @@ export class StorageController {
       throw new BadRequestException("No file provided in request");
     }
 
-    const schoolId = await resolveUserSchoolId(this.prisma, req?.user?.id);
+    const requestedSchoolId = req?.headers?.["x-school-id"] as
+      | string
+      | undefined;
+    const schoolId = await resolveAuthorizedSchoolId(
+      this.prisma,
+      req?.user,
+      requestedSchoolId,
+    );
+    if (schoolId) {
+      await checkSchoolStorageQuota(this.prisma, schoolId);
+    }
     const key = this.storageService.generateKey(
       "uploads",
       file.originalname,

@@ -16,6 +16,54 @@ export async function resolveUserSchoolId(
   return defaultMember?.schoolId;
 }
 
+export async function resolveAuthorizedSchoolId(
+  prisma: PrismaService,
+  user?: { id: string; role: Role },
+  requestedSchoolId?: string,
+): Promise<string | undefined> {
+  if (!user?.id) return undefined;
+
+  const cleanRequested = requestedSchoolId?.trim();
+  if (cleanRequested) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        cleanRequested,
+      );
+    const school = await prisma.school.findFirst({
+      where: {
+        OR: [
+          { slug: cleanRequested },
+          ...(isUuid ? [{ id: cleanRequested }] : []),
+        ],
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (school) {
+      if (user.role === Role.SUPER_ADMIN) {
+        return school.id;
+      }
+      const membership = await prisma.schoolMember.findUnique({
+        where: {
+          schoolId_userId: {
+            schoolId: school.id,
+            userId: user.id,
+          },
+        },
+      });
+      if (!membership) {
+        throw new ForbiddenException(
+          "You are not authorized to upload files to this school tenant",
+        );
+      }
+      return school.id;
+    }
+  }
+
+  return resolveUserSchoolId(prisma, user.id);
+}
+
 export function validateFileExtAndMime(filename: string, mimeType?: string) {
   const ext = path.extname(filename).toLowerCase();
   if (ext && !ALLOWED_EXTENSIONS.includes(ext as any)) {
