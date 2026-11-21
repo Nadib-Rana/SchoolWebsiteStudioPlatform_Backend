@@ -64,7 +64,7 @@ EXPOSE 3000
 
 # Health check to ensure service is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:3000/api/v1/health || exit 1
+  CMD curl -f http://localhost:${PORT:-3000}/api/v1/health || exit 1
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
