@@ -609,6 +609,8 @@ model SchoolSettings {
   language                String   @default("en")
   allowPublicAdmission    Boolean  @default(true) @map("allow_public_admission")
   maintenanceMode         Boolean  @default(false) @map("maintenance_mode")
+  showNoticeTicker        Boolean  @default(true) @map("show_notice_ticker")
+  showFloatingContact     Boolean  @default(true) @map("show_floating_contact")
   securityConfig          Json?    @map("security_config")
   notificationPreferences Json?    @map("notification_preferences")
   createdAt               DateTime @default(now()) @map("created_at")

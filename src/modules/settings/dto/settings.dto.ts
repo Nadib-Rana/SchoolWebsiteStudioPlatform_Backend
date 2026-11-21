@@ -37,6 +37,16 @@ export class UpdateSettingsDto {
   @IsOptional()
   maintenanceMode?: boolean;
 
+  @ApiPropertyOptional({ default: true })
+  @IsBoolean()
+  @IsOptional()
+  showNoticeTicker?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsBoolean()
+  @IsOptional()
+  showFloatingContact?: boolean;
+
   @ApiPropertyOptional()
   @IsObject()
   @IsOptional()
