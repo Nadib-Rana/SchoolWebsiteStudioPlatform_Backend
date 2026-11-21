@@ -20,6 +20,7 @@ import { SchoolRoles } from "../../common/decorators/school-roles.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { ResponseMessage } from "../../common/decorators/response-message.decorator";
 import { SchoolRole } from "@prisma/client";
+import { Throttle } from "@nestjs/throttler";
 import {
   ApplyAdmissionDto,
   TrackAdmissionDto,
@@ -43,6 +44,7 @@ export class AdmissionsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("public/admissions/apply")
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Submit public student admission application" })
@@ -52,6 +54,7 @@ export class AdmissionsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 12, ttl: 60000 } })
   @Get("public/admissions/track")
   @ApiOperation({
     summary: "Track admission application status by reference number",
@@ -66,6 +69,7 @@ export class AdmissionsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 12, ttl: 60000 } })
   @Post("public/admissions/track")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -81,6 +85,7 @@ export class AdmissionsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   @Get("public/:schoolSlug/alumni/verify")
   @ApiOperation({
     summary: "Verify alumni admission number against school ERP",

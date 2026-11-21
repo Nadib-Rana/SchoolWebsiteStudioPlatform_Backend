@@ -121,6 +121,31 @@ export class AdmissionsService {
     return AdmissionStatus.PENDING;
   }
 
+  private async generateUniqueApplicationNumber(
+    year: number = new Date().getFullYear(),
+  ): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const num = Math.floor(100000 + Math.random() * 900000);
+      const candidate = `ADM-${year}-${num}`;
+      if (this.prisma?.admissionApplication?.findUnique) {
+        try {
+          const existing = await this.prisma.admissionApplication.findUnique({
+            where: { applicationNumber: candidate },
+            select: { id: true },
+          });
+          if (!existing) {
+            return candidate;
+          }
+        } catch {
+          return candidate;
+        }
+      } else {
+        return candidate;
+      }
+    }
+    return `ADM-${year}-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+
   async getPublicClasses(schoolSlug: string) {
     const school = await this.resolvePublishedSchool(schoolSlug);
     const erpConfig = await this.integrationsService.getActiveErpConfig(
@@ -224,7 +249,7 @@ export class AdmissionsService {
 
         const applicationNumber =
           erpResult.applicationNumber ||
-          `ADM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          (await this.generateUniqueApplicationNumber());
         const erpStatus = erpResult.status || "PENDING";
 
         // Mirror in local DB so Studio dashboard remains in sync
@@ -292,8 +317,7 @@ export class AdmissionsService {
         );
 
         const year = new Date().getFullYear();
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const queuedAppNumber = `ADM-${year}-${randomSuffix}`;
+        const queuedAppNumber = await this.generateUniqueApplicationNumber(year);
 
         const queued = await this.prisma.admissionApplication.create({
           data: {
@@ -339,8 +363,7 @@ export class AdmissionsService {
 
     // Standalone local mode (when ERP is not configured)
     const year = new Date().getFullYear();
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const applicationNumber = `ADM-${year}-${randomSuffix}`;
+    const applicationNumber = await this.generateUniqueApplicationNumber(year);
 
     const application = await this.prisma.admissionApplication.create({
       data: {

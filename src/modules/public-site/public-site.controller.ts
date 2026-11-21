@@ -13,6 +13,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { Request } from "express";
 import { PublicSiteService } from "./public-site.service";
@@ -56,6 +57,7 @@ export class PublicSiteController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("public/inquiries")
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
