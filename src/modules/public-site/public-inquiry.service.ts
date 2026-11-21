@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { MailService } from "../mail/mail.service";
 import {
@@ -23,12 +28,25 @@ export class PublicInquiryService {
     const school = await this.prisma.school.findFirst({
       where: {
         OR: [{ slug: trimmed }, ...(isUuid ? [{ id: trimmed }] : [])],
+        deletedAt: null,
       },
-      select: { id: true, name: true, slug: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isPublished: true,
+        settings: { select: { maintenanceMode: true } },
+      },
     });
 
     if (!school) {
       throw new NotFoundException(`School '${dto.schoolSlug}' not found`);
+    }
+
+    if (!school.isPublished || school.settings?.maintenanceMode) {
+      throw new ForbiddenException(
+        "This school website is currently undergoing scheduled maintenance. Please try again later.",
+      );
     }
 
     const inquiry = await this.prisma.contactInquiry.create({

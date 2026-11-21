@@ -181,6 +181,12 @@ export class AdmissionsService {
   async apply(dto: ApplyAdmissionDto) {
     const school = await this.resolvePublishedSchool(dto.schoolSlug);
 
+    if (school.settings?.maintenanceMode) {
+      throw new ForbiddenException(
+        "This school website is currently undergoing scheduled maintenance. Please try again later.",
+      );
+    }
+
     if (school.settings && school.settings.allowPublicAdmission === false) {
       throw new ForbiddenException(
         "Public admissions are currently closed for this school.",
