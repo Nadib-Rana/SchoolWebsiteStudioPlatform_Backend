@@ -485,7 +485,8 @@ export class IntegrationsService {
                     n.fileUrl || n.attachmentUrl || existingNotice.fileUrl,
                   isPinned: n.isPinned ?? existingNotice.isPinned,
                   priority: n.priority || existingNotice.priority,
-                  status: PublishStatus.PUBLISHED,
+                  // Preserve existing publish status so private ERP notices never auto-publish
+                  status: existingNotice.status,
                 },
               });
             } else {
@@ -499,7 +500,8 @@ export class IntegrationsService {
                   fileUrl: n.fileUrl || n.attachmentUrl || null,
                   isPinned: Boolean(n.isPinned),
                   priority: n.priority || "NORMAL",
-                  status: PublishStatus.PUBLISHED,
+                  // Import ERP notices as DRAFT (private) until admin explicitly publishes to website
+                  status: PublishStatus.DRAFT,
                   publishDate: n.publishDate
                     ? new Date(n.publishDate)
                     : n.createdAt
