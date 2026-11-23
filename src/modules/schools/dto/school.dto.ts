@@ -149,4 +149,44 @@ export class OnboardingDto {
   @IsString()
   @IsOptional()
   logoUrl?: string;
+
+  @ApiPropertyOptional({ example: "#E3AD3F" })
+  @IsString()
+  @IsOptional()
+  secondaryColor?: string;
+
+  @ApiPropertyOptional({ example: "#E3AD3F" })
+  @IsString()
+  @IsOptional()
+  accentColor?: string;
+
+  @ApiPropertyOptional({ example: "27 Lakeview Avenue, Dhaka" })
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiPropertyOptional({ example: "1995" })
+  @IsString()
+  @IsOptional()
+  establishedYear?: string;
+
+  @ApiPropertyOptional({ example: "A vibrant learning community." })
+  @IsString()
+  @IsOptional()
+  shortBio?: string;
+
+  @ApiPropertyOptional({ example: "Principal" })
+  @IsString()
+  @IsOptional()
+  principalTitle?: string;
+
+  @ApiPropertyOptional({ example: "Secondary School" })
+  @IsString()
+  @IsOptional()
+  schoolType?: string;
+
+  @ApiPropertyOptional({ example: "Primary, Middle and Senior School." })
+  @IsString()
+  @IsOptional()
+  academicOverview?: string;
 }

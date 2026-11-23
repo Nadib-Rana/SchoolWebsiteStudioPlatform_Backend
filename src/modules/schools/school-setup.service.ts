@@ -137,21 +137,36 @@ export class SchoolSetupService {
       },
     });
 
+    const estYear = dto.establishedYear
+      ? parseInt(dto.establishedYear, 10) || new Date().getFullYear()
+      : new Date().getFullYear();
+
     await this.prisma.schoolProfile.create({
       data: {
         schoolId: school.id,
         principalName: dto.principalName || "Principal",
+        principalTitle: dto.principalTitle || "Principal",
         email: dto.contactEmail || null,
         phone: dto.contactPhone || null,
+        address: dto.address || null,
+        established: estYear,
+        shortBio:
+          dto.shortBio ||
+          `Welcome to ${dto.name}. We provide high quality education and student empowerment.`,
+        ...(dto.academicOverview
+          ? { academics: { curriculum: dto.academicOverview } }
+          : {}),
       },
     });
 
     await this.prisma.schoolThemeConfig.create({
       data: {
         schoolId: school.id,
-        activeTheme: dto.themePreset || "theme-classic",
-        selectedTemplate: dto.templateId || "tpl-classic",
+        activeTheme: dto.themePreset || "theme-modern",
+        selectedTemplate: dto.templateId || "Aster Academy",
         primaryColor: dto.primaryColor || "#1E3A8A",
+        secondaryColor: dto.secondaryColor || dto.accentColor || "#E3AD3F",
+        accentColor: dto.accentColor || dto.secondaryColor || "#E3AD3F",
       },
     });
 
@@ -159,6 +174,9 @@ export class SchoolSetupService {
       data: {
         schoolId: school.id,
         siteTitle: `${dto.name} | Official Website`,
+        metaDescription:
+          dto.shortBio ||
+          `Welcome to ${dto.name}. Explore academic programs, faculty, admissions and campus life.`,
       },
     });
 
@@ -167,28 +185,65 @@ export class SchoolSetupService {
         schoolId: school.id,
         contactEmail: dto.contactEmail || null,
         supportPhone: dto.contactPhone || null,
+        allowPublicAdmission: true,
       },
     });
 
     const pagesToCreate = dto.selectedPages?.length
       ? dto.selectedPages
-      : ["home", "about", "academics", "admissions", "teachers", "contact"];
+      : [
+          "home",
+          "about",
+          "academics",
+          "admissions",
+          "teachers",
+          "notices",
+          "events",
+          "gallery",
+          "contact",
+        ];
 
     let order = 1;
     for (const pageSlug of pagesToCreate) {
+      const std = DEFAULT_STANDARD_PAGES.find((p) => p.slug === pageSlug);
       const title =
+        std?.title ||
         pageSlug.charAt(0).toUpperCase() + pageSlug.slice(1).replace("-", " ");
+      const navLabel = std?.navLabel || title;
       await this.prisma.webPage.create({
         data: {
           schoolId: school.id,
           slug: pageSlug,
           title,
-          navLabel: title,
+          navLabel,
           isHome: pageSlug === "home",
           order: order++,
           status: PublishStatus.PUBLISHED,
         },
       });
+    }
+
+    const headerMenu = await this.prisma.navigationMenu.create({
+      data: {
+        schoolId: school.id,
+        location: "HEADER",
+      },
+    });
+
+    let navOrder = 1;
+    for (const p of DEFAULT_STANDARD_PAGES) {
+      if (pagesToCreate.includes(p.slug)) {
+        await this.prisma.navigationMenuItem.create({
+          data: {
+            menuId: headerMenu.id,
+            label: p.navLabel,
+            url: p.isHome ? "/" : `/${p.slug}`,
+            pageSlug: p.slug,
+            order: navOrder++,
+            isExternal: false,
+          },
+        });
+      }
     }
 
     return school;
