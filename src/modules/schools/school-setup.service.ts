@@ -122,6 +122,7 @@ export class SchoolSetupService {
       data: {
         name: dto.name,
         slug: dto.slug.toLowerCase().trim(),
+        logoUrl: dto.logoUrl || null,
         plan: SchoolPlan.PROFESSIONAL,
         isPublished: true,
       },

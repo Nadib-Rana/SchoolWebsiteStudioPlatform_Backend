@@ -144,4 +144,9 @@ export class OnboardingDto {
   @IsArray()
   @IsOptional()
   selectedPages?: string[];
+
+  @ApiPropertyOptional({ example: "/icons/school-logo.png" })
+  @IsString()
+  @IsOptional()
+  logoUrl?: string;
 }
