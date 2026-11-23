@@ -113,6 +113,41 @@ export class AdmissionsService {
     return { firstName, lastName, fullName: full };
   }
 
+  private validatePhotoUrl(raw?: string): string | undefined {
+    const trimmed = raw?.trim();
+    if (!trimmed) return undefined;
+
+    if (trimmed.startsWith("https://")) {
+      try {
+        new URL(trimmed);
+        return trimmed;
+      } catch {
+        throw new BadRequestException(
+          "Applicant photo must be a valid HTTPS image URL or a WebP/JPEG/PNG Data URI (<= 1.5 MB).",
+        );
+      }
+    }
+
+    const match = trimmed.match(
+      /^data:image\/(webp|jpeg|jpg|png);base64,([A-Za-z0-9+/=\s]+)$/i,
+    );
+    if (match) {
+      const mimeType = match[1].toLowerCase();
+      const base64Clean = match[2].replace(/\s+/g, "");
+      const decodedBytes = Buffer.from(base64Clean, "base64").length;
+      if (decodedBytes > 1.5 * 1024 * 1024) {
+        throw new BadRequestException(
+          "Applicant photo must be 1.5 MB or smaller.",
+        );
+      }
+      return `data:image/${mimeType};base64,${base64Clean}`;
+    }
+
+    throw new BadRequestException(
+      "Applicant photo must be a valid HTTPS image URL or a WebP/JPEG/PNG Data URI (<= 1.5 MB).",
+    );
+  }
+
   private normalizeStatus(status?: string): AdmissionStatus {
     const upper = (status || "PENDING").trim().toUpperCase();
     if (VALID_ADMISSION_STATUSES.has(upper)) {
@@ -199,6 +234,17 @@ export class AdmissionsService {
     const guardianEmail = (dto.guardianEmail || dto.email || "")
       .toLowerCase()
       .trim();
+    const validPhotoUrl = this.validatePhotoUrl(dto.photoUrl);
+    const mergedDocuments: Record<string, any> | undefined =
+      dto.documents || dto.documentsUrl || validPhotoUrl
+        ? {
+            ...(dto.documents || {}),
+            ...(dto.documentsUrl?.trim()
+              ? { documentsUrl: dto.documentsUrl.trim() }
+              : {}),
+            ...(validPhotoUrl ? { photoUrl: validPhotoUrl } : {}),
+          }
+        : undefined;
 
     const erpConfig = await this.integrationsService.getActiveErpConfig(
       school.id,
@@ -246,6 +292,7 @@ export class AdmissionsService {
               ? { previousSchool: dto.previousSchool.trim() }
               : {}),
             ...(dto.address?.trim() ? { address: dto.address.trim() } : {}),
+            ...(validPhotoUrl ? { photoUrl: validPhotoUrl } : {}),
             ...(dto.documentsUrl?.trim()
               ? { documentsUrl: dto.documentsUrl.trim() }
               : {}),
@@ -267,6 +314,7 @@ export class AdmissionsService {
               externalSource: "ERP",
               externalApplicationId: erpResult.id || null,
               erpApplicationNumber: applicationNumber,
+              ...(mergedDocuments ? { documents: mergedDocuments as any } : {}),
             },
             create: {
               schoolId: school.id,
@@ -286,11 +334,7 @@ export class AdmissionsService {
               guardianPhone: dto.guardianPhone.trim(),
               guardianEmail: guardianEmail || "not-provided@school.local",
               address: dto.address.trim(),
-              documents: dto.documents
-                ? (dto.documents as any)
-                : dto.documentsUrl
-                  ? { documentsUrl: dto.documentsUrl }
-                  : undefined,
+              documents: mergedDocuments as any,
               status: this.normalizeStatus(erpStatus),
               externalSource: "ERP",
               externalApplicationId: erpResult.id || null,
@@ -343,11 +387,7 @@ export class AdmissionsService {
             guardianPhone: dto.guardianPhone.trim(),
             guardianEmail: guardianEmail || "not-provided@school.local",
             address: dto.address.trim(),
-            documents: dto.documents
-              ? (dto.documents as any)
-              : dto.documentsUrl
-                ? { documentsUrl: dto.documentsUrl }
-                : undefined,
+            documents: mergedDocuments as any,
             status: AdmissionStatus.PENDING,
             notes: "Queued for automatic ERP synchronization.",
             externalSource: "ERP_PENDING_SYNC",
@@ -389,11 +429,7 @@ export class AdmissionsService {
         guardianPhone: dto.guardianPhone.trim(),
         guardianEmail: guardianEmail || "not-provided@school.local",
         address: dto.address.trim(),
-        documents: dto.documents
-          ? (dto.documents as any)
-          : dto.documentsUrl
-            ? { documentsUrl: dto.documentsUrl }
-            : undefined,
+        documents: mergedDocuments as any,
         status: AdmissionStatus.SUBMITTED,
         externalSource: "LOCAL",
       },
@@ -595,9 +631,9 @@ export class AdmissionsService {
       school.id,
     );
 
-    if (!erpConfig || !erpConfig.tenantId) {
+    if (!erpConfig) {
       throw new ForbiddenException(
-        "Alumni verification requires an active and verified School ERP connection.",
+        "Alumni verification requires an active School ERP connection.",
       );
     }
 

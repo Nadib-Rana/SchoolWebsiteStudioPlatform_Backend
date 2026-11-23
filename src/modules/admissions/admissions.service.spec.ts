@@ -176,5 +176,81 @@ describe("AdmissionsService — Zero-Downtime ERP Offline Fallback", () => {
     expect(result.status).toBe("UNDER_REVIEW");
     expect(result.studentName).toBe("Arafat Rahman");
   });
+
+  it("verifies alumni using x-website-key even when tenantId is omitted", async () => {
+    integrationsService.getActiveErpConfig.mockResolvedValue({
+      baseUrl: "https://apiedu.selusbd.com/api/v1",
+      apiKey: "sk_web_key_only",
+      enabled: true,
+    });
+    erpClient.verifyAlumni.mockResolvedValue({
+      verified: true,
+      name: "Nadia Islam",
+      graduationYear: 2022,
+      batch: "2022",
+      className: "Grade 10",
+    });
+
+    const result = await service.verifyAlumni("greenfield", "ADM-2022-001");
+
+    expect(erpClient.verifyAlumni).toHaveBeenCalledWith(
+      "https://apiedu.selusbd.com/api/v1",
+      "sk_web_key_only",
+      undefined,
+      "ADM-2022-001",
+    );
+    expect(result.verified).toBe(true);
+    expect((result as any).name).toBe("Nadia Islam");
+  });
+
+  it("forwards valid photoUrl to ERP and rejects invalid photoUrl formats", async () => {
+    const sampleWebp = `data:image/webp;base64,${Buffer.from("fake-webp-bytes").toString("base64")}`;
+    erpClient.submitAdmission.mockResolvedValue({
+      id: "erp-app-1",
+      applicationNumber: "ADM-2026-0099",
+      status: "SUBMITTED",
+    });
+
+    const okRes = await service.apply({
+      schoolSlug: "greenfield",
+      firstName: "Arafat",
+      lastName: "Rahman",
+      dateOfBirth: "2012-05-15",
+      gender: "MALE",
+      phone: "01711000000",
+      applyingForGrade: "Class 6",
+      guardianName: "Kamal Rahman",
+      guardianRelationship: "Father",
+      guardianPhone: "01711000001",
+      guardianEmail: "kamal@example.com",
+      address: "Dhaka",
+      photoUrl: sampleWebp,
+    });
+
+    expect(okRes.success).toBe(true);
+    expect(erpClient.submitAdmission).toHaveBeenCalledWith(
+      mockErpConfig.baseUrl,
+      mockErpConfig.apiKey,
+      expect.objectContaining({ photoUrl: sampleWebp }),
+      expect.any(String),
+    );
+
+    await expect(
+      service.apply({
+        schoolSlug: "greenfield",
+        firstName: "Arafat",
+        lastName: "Rahman",
+        dateOfBirth: "2012-05-15",
+        gender: "MALE",
+        phone: "01711000000",
+        applyingForGrade: "Class 6",
+        guardianName: "Kamal Rahman",
+        guardianRelationship: "Father",
+        guardianPhone: "01711000001",
+        address: "Dhaka",
+        photoUrl: "http://insecure.example.com/photo.jpg",
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
 });
 

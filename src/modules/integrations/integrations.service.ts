@@ -43,6 +43,12 @@ export class IntegrationsService {
     private readonly erpClient: ErpClientService,
   ) {}
 
+  private getEnvErpBaseUrl(): string {
+    const raw =
+      process.env.ERP_BASE_URL || process.env.DEFAULT_ERP_BASE_URL || "";
+    return raw.trim() ? normalizeErpBaseUrl(raw) : "";
+  }
+
   private normalizeType(type: string): string {
     const upper = type.trim().toUpperCase();
     if (upper === "ERP") return "SCHOOL_ERP";
@@ -56,6 +62,7 @@ export class IntegrationsService {
     if (!integration) return integration;
     const rawCreds = (integration.credentials as Record<string, any>) || {};
     const {
+      erpBaseUrl,
       apiKey,
       apiKeyEncrypted,
       webhookSecret,
@@ -69,6 +76,7 @@ export class IntegrationsService {
       ...integration,
       credentials: {
         ...rest,
+        isServerConfigured: Boolean(this.getEnvErpBaseUrl() || erpBaseUrl),
         hasApiKey,
         apiKeyHint:
           rawCreds.apiKeyHint ||
@@ -89,7 +97,9 @@ export class IntegrationsService {
     if (!integration) return null;
     const creds = (integration.credentials as Record<string, any>) || {};
     const enabled = creds.enabled === true;
-    const baseUrl = creds.erpBaseUrl ? String(creds.erpBaseUrl).trim() : "";
+    const baseUrl =
+      this.getEnvErpBaseUrl() ||
+      (creds.erpBaseUrl ? normalizeErpBaseUrl(String(creds.erpBaseUrl)) : "");
     const encryptedOrPlain = creds.apiKeyEncrypted || creds.apiKey;
 
     if (!enabled || !baseUrl || !encryptedOrPlain) {
@@ -104,7 +114,7 @@ export class IntegrationsService {
       if (!apiKey) return null;
 
       return {
-        baseUrl: normalizeErpBaseUrl(baseUrl),
+        baseUrl,
         apiKey,
         tenantId: creds.tenantId ? String(creds.tenantId) : undefined,
         schoolName: creds.erpSchoolName
@@ -138,7 +148,7 @@ export class IntegrationsService {
             {
               action: "ERP integration initialized",
               detail:
-                "Add your ERP API Base URL and Website API Key (x-website-key) to enable live sync.",
+                "Add your Website API Key (x-website-key) to enable live ERP sync.",
               timestamp: new Date().toISOString(),
               status: "PENDING",
             },
@@ -214,16 +224,18 @@ export class IntegrationsService {
     }
     delete mergedCreds.webhookSecret;
     delete mergedCreds.hasWebhookSecret;
+    delete mergedCreds.isServerConfigured;
 
     if (normalizedType === "SCHOOL_ERP") {
       this.erpClient.clearClassesCache(schoolId);
     }
 
+    const effectiveBaseUrl = this.getEnvErpBaseUrl() || mergedCreds.erpBaseUrl;
     const nextStatus =
       dto.status ||
       (mergedCreds.enabled === false
         ? "INACTIVE"
-        : mergedCreds.erpBaseUrl && mergedCreds.apiKeyEncrypted
+        : effectiveBaseUrl && mergedCreds.apiKeyEncrypted
           ? "CONNECTED"
           : existing?.status || "INACTIVE");
 
@@ -257,11 +269,13 @@ export class IntegrationsService {
     });
 
     const prevCreds = (existing?.credentials as Record<string, any>) || {};
-    const baseUrl = dto?.erpBaseUrl?.trim()
-      ? normalizeErpBaseUrl(dto.erpBaseUrl)
-      : prevCreds.erpBaseUrl
+    const envBaseUrl = this.getEnvErpBaseUrl();
+    const baseUrl =
+      envBaseUrl ||
+      (dto?.erpBaseUrl?.trim() ? normalizeErpBaseUrl(dto.erpBaseUrl) : "") ||
+      (prevCreds.erpBaseUrl
         ? normalizeErpBaseUrl(String(prevCreds.erpBaseUrl))
-        : "";
+        : "");
 
     let apiKey = dto?.apiKey?.trim() || "";
     if (!apiKey && prevCreds.apiKeyEncrypted) {
@@ -272,7 +286,7 @@ export class IntegrationsService {
 
     if (!baseUrl) {
       throw new BadRequestException(
-        "ERP API Base URL is required before testing connection.",
+        "ERP server connection is not configured on the platform. Please contact your system administrator.",
       );
     }
     if (!apiKey) {
@@ -286,7 +300,9 @@ export class IntegrationsService {
 
       const nextCreds: Record<string, any> = {
         ...prevCreds,
-        erpBaseUrl: baseUrl,
+        ...(!envBaseUrl && dto?.erpBaseUrl?.trim()
+          ? { erpBaseUrl: normalizeErpBaseUrl(dto.erpBaseUrl) }
+          : {}),
         apiKeyEncrypted: encryptSecret(apiKey),
         apiKeyHint: maskApiKey(apiKey),
         enabled: dto?.enabled ?? prevCreds.enabled ?? true,
@@ -298,6 +314,7 @@ export class IntegrationsService {
       };
       delete nextCreds.apiKey;
       delete nextCreds.hasApiKey;
+      delete nextCreds.isServerConfigured;
 
       const historyEntry = {
         action: "ERP Live Connection Test",
@@ -767,6 +784,9 @@ export class IntegrationsService {
               ? { previousSchool: app.previousSchool }
               : {}),
             ...(app.address ? { address: app.address } : {}),
+            ...(docsObj?.photoUrl
+              ? { photoUrl: String(docsObj.photoUrl) }
+              : {}),
             ...(docsObj?.documentsUrl
               ? { documentsUrl: String(docsObj.documentsUrl) }
               : {}),

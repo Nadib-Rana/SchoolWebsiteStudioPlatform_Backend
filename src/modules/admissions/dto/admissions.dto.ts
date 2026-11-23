@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsDateString,
   IsObject,
+  MaxLength,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { AdmissionStatus } from "@prisma/client";
@@ -104,6 +105,15 @@ export class ApplyAdmissionDto {
   @IsObject()
   @IsOptional()
   documents?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    description:
+      "Optional applicant passport photo: WebP/JPEG/PNG Data URI (<= 1.5 MB) or HTTPS image URL",
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(2_200_000)
+  photoUrl?: string;
 }
 
 export class TrackAdmissionDto {

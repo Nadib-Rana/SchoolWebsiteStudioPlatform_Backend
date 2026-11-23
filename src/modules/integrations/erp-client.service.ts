@@ -42,6 +42,7 @@ export interface ErpAdmissionApplyPayload {
   previousSchool?: string;
   address?: string;
   documentsUrl?: string;
+  photoUrl?: string;
 }
 
 export interface ErpAdmissionApplyResponse {
@@ -131,7 +132,9 @@ export class ErpClientService {
   ): Promise<ErpTestResponse> {
     const normalizedBase = normalizeErpBaseUrl(baseUrl);
     if (!normalizedBase) {
-      throw new BadRequestException("ERP Base URL is required.");
+      throw new BadRequestException(
+        "ERP server endpoint is not configured on the platform.",
+      );
     }
     if (!apiKey?.trim()) {
       throw new BadRequestException("ERP Website API Key is required.");
@@ -246,7 +249,7 @@ export class ErpClientService {
   async verifyAlumni(
     baseUrl: string,
     apiKey: string,
-    tenantId: string,
+    tenantId: string | undefined,
     code: string,
   ): Promise<ErpAlumniVerifyResponse> {
     const normalizedBase = normalizeErpBaseUrl(baseUrl);
@@ -356,7 +359,7 @@ export class ErpClientService {
       this.logger.error(`ERP network error calling ${url}: ${error?.message}`);
       throw new BadGatewayException(
         options.isAdminContext
-          ? `Could not reach ERP server at ${url}. Please verify the ERP Base URL and network connectivity.`
+          ? "Could not reach the School ERP server right now. Please try again shortly or contact platform support."
           : "The school admission server is temporarily unreachable. Please try again shortly.",
       );
     }
