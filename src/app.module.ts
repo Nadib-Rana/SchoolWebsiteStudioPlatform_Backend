@@ -33,6 +33,7 @@ import { ContentModule } from "./modules/content/content.module";
 import { ThemeModule } from "./modules/theme/theme.module";
 import { PagesModule } from "./modules/pages/pages.module";
 import { TeachersModule } from "./modules/teachers/teachers.module";
+import { GoverningBodyModule } from "./modules/governing-body/governing-body.module";
 import { NoticesModule } from "./modules/notices/notices.module";
 import { EventsModule } from "./modules/events/events.module";
 import { GalleryModule } from "./modules/gallery/gallery.module";
@@ -87,6 +88,7 @@ import { AppService } from "./app.service";
     ThemeModule,
     PagesModule,
     TeachersModule,
+    GoverningBodyModule,
     NoticesModule,
     EventsModule,
     GalleryModule,

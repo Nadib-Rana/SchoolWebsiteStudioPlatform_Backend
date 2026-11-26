@@ -94,6 +94,7 @@ export class PublicSiteService {
       navigation: resources.navigation,
       pages: resources.pages,
       teachers: resources.teachers,
+      governingMembers: resources.governingMembers,
       notices: resources.notices,
       events: resources.events,
       albums: resources.albums,

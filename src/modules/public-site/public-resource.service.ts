@@ -7,67 +7,76 @@ export class PublicResourceService {
   constructor(private readonly prisma: PrismaService) {}
 
   async fetchPublishedResources(schoolId: string) {
-    const [pages, teachers, notices, events, albums, menu] = await Promise.all([
-      this.prisma.webPage.findMany({
-        where: {
-          schoolId,
-          status: PublishStatus.PUBLISHED,
-        },
-        include: {
-          sections: {
-            where: { isVisible: true },
-            orderBy: { order: "asc" },
+    const [pages, teachers, governingMembers, notices, events, albums, menu] =
+      await Promise.all([
+        this.prisma.webPage.findMany({
+          where: {
+            schoolId,
+            status: PublishStatus.PUBLISHED,
           },
-        },
-        orderBy: { order: "asc" },
-      }),
-      this.prisma.teacher.findMany({
-        where: {
-          schoolId,
-          status: "ACTIVE",
-        },
-        orderBy: [{ order: "asc" }, { name: "asc" }],
-      }),
-      this.prisma.notice.findMany({
-        where: {
-          schoolId,
-          status: PublishStatus.PUBLISHED,
-        },
-        orderBy: [{ isPinned: "desc" }, { publishDate: "desc" }],
-        take: 50,
-      }),
-      this.prisma.schoolEvent.findMany({
-        where: {
-          schoolId,
-          status: PublishStatus.PUBLISHED,
-        },
-        orderBy: { eventDate: "asc" },
-        take: 50,
-      }),
-      this.prisma.galleryAlbum.findMany({
-        where: { schoolId },
-        include: {
-          photos: {
-            orderBy: { order: "asc" },
-            take: 50,
+          include: {
+            sections: {
+              where: { isVisible: true },
+              orderBy: { order: "asc" },
+            },
           },
-        },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-        take: 20,
-      }),
-      this.prisma.navigationMenu.findFirst({
-        where: { schoolId, location: "HEADER" },
-        include: {
-          items: {
-            orderBy: { order: "asc" },
+          orderBy: { order: "asc" },
+        }),
+        this.prisma.teacher.findMany({
+          where: {
+            schoolId,
+            status: "ACTIVE",
           },
-        },
-      }),
-    ]);
+          orderBy: [{ order: "asc" }, { name: "asc" }],
+        }),
+        this.prisma.governingMember.findMany({
+          where: {
+            schoolId,
+            status: "ACTIVE",
+          },
+          orderBy: [{ isFeatured: "desc" }, { order: "asc" }, { name: "asc" }],
+        }),
+        this.prisma.notice.findMany({
+          where: {
+            schoolId,
+            status: PublishStatus.PUBLISHED,
+          },
+          orderBy: [{ isPinned: "desc" }, { publishDate: "desc" }],
+          take: 50,
+        }),
+        this.prisma.schoolEvent.findMany({
+          where: {
+            schoolId,
+            status: PublishStatus.PUBLISHED,
+          },
+          orderBy: { eventDate: "asc" },
+          take: 50,
+        }),
+        this.prisma.galleryAlbum.findMany({
+          where: { schoolId },
+          include: {
+            photos: {
+              orderBy: { order: "asc" },
+              take: 50,
+            },
+          },
+          orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+          take: 20,
+        }),
+        this.prisma.navigationMenu.findFirst({
+          where: { schoolId, location: "HEADER" },
+          include: {
+            items: {
+              orderBy: { order: "asc" },
+            },
+          },
+        }),
+      ]);
 
     return {
       pages,
       teachers,
+      governingMembers,
       notices,
       events,
       albums,

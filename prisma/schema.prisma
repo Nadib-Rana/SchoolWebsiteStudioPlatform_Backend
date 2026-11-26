@@ -191,6 +191,7 @@ model School {
   themeConfig      SchoolThemeConfig?
   pages            WebPage[]
   teachers         Teacher[]
+  governingMembers GoverningMember[]
   notices          Notice[]
   events           SchoolEvent[]
   albums           GalleryAlbum[]
@@ -346,6 +347,31 @@ model Teacher {
   @@index([schoolId])
   @@index([schoolId, department])
   @@map("teachers")
+}
+
+model GoverningMember {
+  id            String   @id @default(uuid()) @db.Uuid
+  schoolId      String   @db.Uuid @map("school_id")
+  name          String
+  designation   String
+  category      String   @default("GOVERNING_BODY")
+  qualification String?
+  termPeriod    String?  @map("term_period")
+  email         String?
+  phone         String?
+  photoUrl      String?  @map("photo_url")
+  message       String?  @db.Text
+  isFeatured    Boolean  @default(false) @map("is_featured")
+  order         Int      @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, category])
+  @@map("governing_members")
 }
 
 model Notice {
