@@ -26,6 +26,9 @@ import {
   TrackAdmissionDto,
   UpdateAdmissionStatusDto,
   AdmissionQueryDto,
+  PayOnlineAdmissionDto,
+  VerifyOnlinePaymentDto,
+  PayManualAdmissionDto,
 } from "./dto/admissions.dto";
 
 @ApiTags("Admissions")
@@ -41,6 +44,61 @@ export class AdmissionsController {
   @ResponseMessage("Admission classes retrieved successfully")
   async getPublicClasses(@Param("schoolSlug") schoolSlug: string) {
     return this.admissionsService.getPublicClasses(schoolSlug);
+  }
+
+  @Public()
+  @Get("public/admissions/:schoolSlug/fee-config")
+  @ApiOperation({
+    summary: "Get school admission fee policy & active online/manual payment gateways",
+  })
+  @ResponseMessage("Admission fee configuration retrieved successfully")
+  async getPublicFeeConfig(@Param("schoolSlug") schoolSlug: string) {
+    return this.admissionsService.getPublicFeeConfig(schoolSlug);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post("public/admissions/:schoolSlug/pay-online")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Initiate online admission fee payment via school's enabled ERP gateway",
+  })
+  @ResponseMessage("Online payment session created successfully")
+  async initiateOnlinePayment(
+    @Param("schoolSlug") schoolSlug: string,
+    @Body() dto: PayOnlineAdmissionDto,
+  ) {
+    return this.admissionsService.initiateOnlinePayment(schoolSlug, dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
+  @Post("public/admissions/:schoolSlug/verify-online-payment")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Verify completed online payment callback with School ERP",
+  })
+  @ResponseMessage("Online payment verified successfully")
+  async verifyOnlinePayment(
+    @Param("schoolSlug") schoolSlug: string,
+    @Body() dto: VerifyOnlinePaymentDto,
+  ) {
+    return this.admissionsService.verifyOnlinePayment(schoolSlug, dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post("public/admissions/:schoolSlug/pay-manual")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Submit manual MFS / bank TrxID payment details to School ERP",
+  })
+  @ResponseMessage("Manual payment submitted for verification")
+  async submitManualPayment(
+    @Param("schoolSlug") schoolSlug: string,
+    @Body() dto: PayManualAdmissionDto,
+  ) {
+    return this.admissionsService.submitManualPayment(schoolSlug, dto);
   }
 
   @Public()

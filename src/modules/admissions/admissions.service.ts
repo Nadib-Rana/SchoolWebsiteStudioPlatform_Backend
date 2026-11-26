@@ -16,6 +16,9 @@ import {
   ApplyAdmissionDto,
   AdmissionQueryDto,
   UpdateAdmissionStatusDto,
+  PayOnlineAdmissionDto,
+  VerifyOnlinePaymentDto,
+  PayManualAdmissionDto,
 } from "./dto/admissions.dto";
 
 const DEFAULT_LOCAL_CLASSES = [
@@ -213,6 +216,158 @@ export class AdmissionsService {
     };
   }
 
+  async getPublicFeeConfig(schoolSlug: string) {
+    const school = await this.resolvePublishedSchool(schoolSlug);
+    const erpConfig = await this.integrationsService.getActiveErpConfig(
+      school.id,
+    );
+
+    if (erpConfig) {
+      try {
+        const config = await this.erpClient.getPublicFeeConfig(
+          erpConfig.baseUrl,
+          erpConfig.apiKey,
+          school.id,
+        );
+        return {
+          source: "ERP" as const,
+          erpConnected: true,
+          ...config,
+        };
+      } catch (err: any) {
+        this.logger.warn(
+          `Failed to load ERP fee config for school ${school.slug}: ${err?.message}`,
+        );
+      }
+    }
+
+    return {
+      source: "LOCAL" as const,
+      erpConnected: false,
+      enabled: false,
+      currency: "BDT",
+      defaultFee: 0,
+      classFees: {},
+      allowOnlinePayment: false,
+      allowManualPayment: false,
+      manualInstructions: "",
+      activeGateways: [] as string[],
+    };
+  }
+
+  private async requireActiveErpAdmissionSchool(schoolSlug: string) {
+    const school = await this.resolvePublishedSchool(schoolSlug);
+    if (school.settings?.maintenanceMode) {
+      throw new ForbiddenException(
+        "This school website is currently undergoing scheduled maintenance. Please try again later.",
+      );
+    }
+    if (school.settings && school.settings.allowPublicAdmission === false) {
+      throw new ForbiddenException(
+        "Public admissions are currently closed for this school.",
+      );
+    }
+    const erpConfig = await this.integrationsService.getActiveErpConfig(
+      school.id,
+    );
+    if (!erpConfig) {
+      throw new ForbiddenException(
+        "Online admission fee payment requires an active School ERP connection.",
+      );
+    }
+    return { school, erpConfig };
+  }
+
+  private async resolveErpLookupNumber(
+    schoolId: string,
+    applicationNumber: string,
+  ): Promise<string> {
+    const normalized = applicationNumber.trim().toUpperCase();
+    if (!this.prisma?.admissionApplication?.findFirst) {
+      return normalized;
+    }
+    const localMatch = await this.prisma.admissionApplication.findFirst({
+      where: {
+        schoolId,
+        OR: [
+          { applicationNumber: normalized },
+          { erpApplicationNumber: normalized },
+        ],
+      },
+      select: { erpApplicationNumber: true },
+    });
+    return localMatch?.erpApplicationNumber || normalized;
+  }
+
+  async initiateOnlinePayment(schoolSlug: string, dto: PayOnlineAdmissionDto) {
+    const { school, erpConfig } =
+      await this.requireActiveErpAdmissionSchool(schoolSlug);
+    const lookupNumber = await this.resolveErpLookupNumber(
+      school.id,
+      dto.applicationNumber,
+    );
+    return this.erpClient.initiateOnlinePayment(
+      erpConfig.baseUrl,
+      erpConfig.apiKey,
+      {
+        applicationNumber: lookupNumber,
+        identifier: dto.identifier.trim(),
+        gateway: dto.gateway.trim().toUpperCase(),
+        callbackBaseUrl: dto.callbackBaseUrl.trim(),
+      },
+    );
+  }
+
+  async verifyOnlinePayment(
+    schoolSlug: string,
+    dto: VerifyOnlinePaymentDto,
+  ) {
+    const { school, erpConfig } =
+      await this.requireActiveErpAdmissionSchool(schoolSlug);
+    const lookupNumber = await this.resolveErpLookupNumber(
+      school.id,
+      dto.applicationNumber,
+    );
+    return this.erpClient.verifyOnlinePayment(
+      erpConfig.baseUrl,
+      erpConfig.apiKey,
+      {
+        applicationNumber: lookupNumber,
+        identifier: dto.identifier.trim(),
+        gateway: dto.gateway.trim().toUpperCase(),
+        ...(dto.transactionId?.trim()
+          ? { transactionId: dto.transactionId.trim() }
+          : {}),
+        ...(dto.valId?.trim() ? { valId: dto.valId.trim() } : {}),
+        ...(dto.paymentID?.trim()
+          ? { paymentID: dto.paymentID.trim() }
+          : {}),
+      },
+    );
+  }
+
+  async submitManualPayment(schoolSlug: string, dto: PayManualAdmissionDto) {
+    const { school, erpConfig } =
+      await this.requireActiveErpAdmissionSchool(schoolSlug);
+    const lookupNumber = await this.resolveErpLookupNumber(
+      school.id,
+      dto.applicationNumber,
+    );
+    return this.erpClient.submitManualPayment(
+      erpConfig.baseUrl,
+      erpConfig.apiKey,
+      {
+        applicationNumber: lookupNumber,
+        identifier: dto.identifier.trim(),
+        paymentMethod: dto.paymentMethod.trim().toUpperCase(),
+        transactionId: dto.transactionId.trim(),
+        ...(dto.paymentNote?.trim()
+          ? { paymentNote: dto.paymentNote.trim() }
+          : {}),
+      },
+    );
+  }
+
   async apply(dto: ApplyAdmissionDto) {
     const school = await this.resolvePublishedSchool(dto.schoolSlug);
 
@@ -234,15 +389,41 @@ export class AdmissionsService {
     const guardianEmail = (dto.guardianEmail || dto.email || "")
       .toLowerCase()
       .trim();
+    const presentAddress =
+      dto.presentAddress?.trim() || dto.address?.trim() || "";
+    if (!presentAddress) {
+      throw new BadRequestException("Present residential address is required.");
+    }
+    const permanentAddress = dto.permanentAddress?.trim() || "";
     const validPhotoUrl = this.validatePhotoUrl(dto.photoUrl);
     const mergedDocuments: Record<string, any> | undefined =
-      dto.documents || dto.documentsUrl || validPhotoUrl
+      dto.documents ||
+      dto.documentsUrl ||
+      validPhotoUrl ||
+      dto.birthRegistrationNo?.trim() ||
+      dto.fatherName?.trim() ||
+      dto.motherName?.trim() ||
+      dto.presentAddress?.trim() ||
+      permanentAddress
         ? {
             ...(dto.documents || {}),
             ...(dto.documentsUrl?.trim()
               ? { documentsUrl: dto.documentsUrl.trim() }
               : {}),
             ...(validPhotoUrl ? { photoUrl: validPhotoUrl } : {}),
+            ...(dto.birthRegistrationNo?.trim()
+              ? { birthRegistrationNo: dto.birthRegistrationNo.trim() }
+              : {}),
+            ...(dto.fatherName?.trim()
+              ? { fatherName: dto.fatherName.trim() }
+              : {}),
+            ...(dto.motherName?.trim()
+              ? { motherName: dto.motherName.trim() }
+              : {}),
+            ...(dto.presentAddress?.trim()
+              ? { presentAddress: dto.presentAddress.trim() }
+              : {}),
+            ...(permanentAddress ? { permanentAddress } : {}),
           }
         : undefined;
 
@@ -288,10 +469,21 @@ export class AdmissionsService {
             ...(dto.bloodGroup?.trim()
               ? { bloodGroup: dto.bloodGroup.trim() }
               : {}),
+            ...(dto.birthRegistrationNo?.trim()
+              ? { birthRegistrationNo: dto.birthRegistrationNo.trim() }
+              : {}),
+            ...(dto.fatherName?.trim()
+              ? { fatherName: dto.fatherName.trim() }
+              : {}),
+            ...(dto.motherName?.trim()
+              ? { motherName: dto.motherName.trim() }
+              : {}),
             ...(dto.previousSchool?.trim()
               ? { previousSchool: dto.previousSchool.trim() }
               : {}),
-            ...(dto.address?.trim() ? { address: dto.address.trim() } : {}),
+            address: presentAddress,
+            presentAddress,
+            ...(permanentAddress ? { permanentAddress } : {}),
             ...(validPhotoUrl ? { photoUrl: validPhotoUrl } : {}),
             ...(dto.documentsUrl?.trim()
               ? { documentsUrl: dto.documentsUrl.trim() }
@@ -304,6 +496,11 @@ export class AdmissionsService {
           erpResult.applicationNumber ||
           (await this.generateUniqueApplicationNumber());
         const erpStatus = erpResult.status || "PENDING";
+        const feeAmount = Number(erpResult.feeAmount ?? 0);
+        const paymentStatus =
+          erpResult.paymentStatus ||
+          (feeAmount > 0 ? "PENDING" : "NOT_REQUIRED");
+        const currency = erpResult.currency || "BDT";
 
         // Mirror in local DB so Studio dashboard remains in sync
         try {
@@ -333,7 +530,7 @@ export class AdmissionsService {
               guardianRelationship: dto.guardianRelationship,
               guardianPhone: dto.guardianPhone.trim(),
               guardianEmail: guardianEmail || "not-provided@school.local",
-              address: dto.address.trim(),
+              address: presentAddress,
               documents: mergedDocuments as any,
               status: this.normalizeStatus(erpStatus),
               externalSource: "ERP",
@@ -352,6 +549,9 @@ export class AdmissionsService {
           applicationNumber,
           studentName: fullName,
           status: erpStatus,
+          feeAmount,
+          paymentStatus,
+          currency,
           message:
             "Your admission application has been submitted to the school ERP. Keep your application number safe to track your status.",
         };
@@ -386,7 +586,7 @@ export class AdmissionsService {
             guardianRelationship: dto.guardianRelationship,
             guardianPhone: dto.guardianPhone.trim(),
             guardianEmail: guardianEmail || "not-provided@school.local",
-            address: dto.address.trim(),
+            address: presentAddress,
             documents: mergedDocuments as any,
             status: AdmissionStatus.PENDING,
             notes: "Queued for automatic ERP synchronization.",
@@ -401,6 +601,9 @@ export class AdmissionsService {
           applicationNumber: queued.applicationNumber,
           studentName: queued.studentName,
           status: queued.status,
+          feeAmount: 0,
+          paymentStatus: "NOT_REQUIRED",
+          currency: "BDT",
           message:
             "Your admission application has been received and safely queued for ERP processing. Please keep your reference number to track status.",
         };
@@ -428,7 +631,7 @@ export class AdmissionsService {
         guardianRelationship: dto.guardianRelationship,
         guardianPhone: dto.guardianPhone.trim(),
         guardianEmail: guardianEmail || "not-provided@school.local",
-        address: dto.address.trim(),
+        address: presentAddress,
         documents: mergedDocuments as any,
         status: AdmissionStatus.SUBMITTED,
         externalSource: "LOCAL",
@@ -441,6 +644,9 @@ export class AdmissionsService {
       applicationNumber: application.applicationNumber,
       studentName: application.studentName,
       status: application.status,
+      feeAmount: 0,
+      paymentStatus: "NOT_REQUIRED",
+      currency: "BDT",
       message:
         "Your admission application has been registered successfully. Please keep your application number safe for status tracking.",
     };
@@ -534,6 +740,13 @@ export class AdmissionsService {
             status: erpTrack.status || "PENDING",
             interviewDate: erpTrack.interviewDate || null,
             notes: resolvedNotes,
+            feeAmount: erpTrack.feeAmount,
+            paymentStatus: erpTrack.paymentStatus,
+            paymentMethod: erpTrack.paymentMethod ?? null,
+            transactionId: erpTrack.transactionId ?? null,
+            paymentNote: erpTrack.paymentNote ?? null,
+            paidAt: erpTrack.paidAt ?? null,
+            currency: erpTrack.currency || "BDT",
             submittedAt:
               erpTrack.createdAt ||
               localMatch?.createdAt?.toISOString() ||

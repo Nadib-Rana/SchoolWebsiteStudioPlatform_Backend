@@ -23,6 +23,7 @@ export interface ErpClassItem {
   name: string;
   section?: string;
   capacity?: number;
+  admissionFee?: number;
   [key: string]: any;
 }
 
@@ -39,8 +40,13 @@ export interface ErpAdmissionApplyPayload {
   guardianEmail?: string;
   relationship?: string;
   bloodGroup?: string;
+  birthRegistrationNo?: string;
+  fatherName?: string;
+  motherName?: string;
   previousSchool?: string;
   address?: string;
+  presentAddress?: string;
+  permanentAddress?: string;
   documentsUrl?: string;
   photoUrl?: string;
 }
@@ -49,6 +55,9 @@ export interface ErpAdmissionApplyResponse {
   id?: string;
   applicationNumber: string;
   status: string;
+  feeAmount?: number;
+  paymentStatus?: string;
+  currency?: string;
   [key: string]: any;
 }
 
@@ -64,8 +73,80 @@ export interface ErpTrackResponse {
   notes?: string | null;
   adminNotes?: string | null;
   remarks?: string | null;
+  feeAmount?: number;
+  paymentStatus?: string;
+  paymentMethod?: string | null;
+  transactionId?: string | null;
+  paymentNote?: string | null;
+  paidAt?: string | null;
+  currency?: string;
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: any;
+}
+
+export interface ErpFeeConfig {
+  enabled: boolean;
+  currency: string;
+  defaultFee: number;
+  classFees: Record<string, number>;
+  allowOnlinePayment: boolean;
+  allowManualPayment: boolean;
+  manualInstructions?: string;
+  activeGateways: string[];
+}
+
+export interface ErpPayOnlinePayload {
+  applicationNumber: string;
+  identifier: string;
+  gateway: string;
+  callbackBaseUrl: string;
+}
+
+export interface ErpPayOnlineResponse {
+  gateway: string;
+  applicationNumber: string;
+  feeAmount: number;
+  currency: string;
+  redirectUrl: string;
+  transactionId: string;
+  mode?: string;
+  [key: string]: any;
+}
+
+export interface ErpVerifyOnlinePaymentPayload {
+  applicationNumber: string;
+  identifier: string;
+  gateway: string;
+  transactionId?: string;
+  valId?: string;
+  paymentID?: string;
+}
+
+export interface ErpVerifyOnlinePaymentResponse {
+  verified: boolean;
+  applicationNumber?: string;
+  paymentStatus: string;
+  paymentMethod?: string;
+  transactionId?: string;
+  feeAmount?: number;
+  paidAt?: string;
+  [key: string]: any;
+}
+
+export interface ErpPayManualPayload {
+  applicationNumber: string;
+  identifier: string;
+  paymentMethod: string;
+  transactionId: string;
+  paymentNote?: string;
+}
+
+export interface ErpPayManualResponse {
+  paymentStatus: string;
+  feeAmount?: number;
+  transactionId?: string;
+  paymentMethod?: string;
   [key: string]: any;
 }
 
@@ -115,14 +196,18 @@ interface CacheEntry<T> {
 export class ErpClientService {
   private readonly logger = new Logger(ErpClientService.name);
   private readonly classesCache = new Map<string, CacheEntry<ErpClassItem[]>>();
+  private readonly feeConfigCache = new Map<string, CacheEntry<ErpFeeConfig>>();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly FEE_CONFIG_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
   private readonly REQUEST_TIMEOUT_MS = 10_000; // 10 seconds
 
   clearClassesCache(schoolId?: string) {
     if (schoolId) {
       this.classesCache.delete(schoolId);
+      this.feeConfigCache.delete(schoolId);
     } else {
       this.classesCache.clear();
+      this.feeConfigCache.clear();
     }
   }
 
@@ -190,6 +275,9 @@ export class ErpClientService {
         name: String(item.name ?? item.title ?? item.className ?? item.id),
         ...(item.section ? { section: item.section } : {}),
         ...(item.capacity !== undefined ? { capacity: item.capacity } : {}),
+        ...(item.admissionFee !== undefined
+          ? { admissionFee: Number(item.admissionFee) }
+          : {}),
       }));
 
     this.classesCache.set(schoolId, {
@@ -198,6 +286,108 @@ export class ErpClientService {
     });
 
     return classes;
+  }
+
+  async getPublicFeeConfig(
+    baseUrl: string,
+    apiKey: string,
+    schoolId: string,
+    forceRefresh = false,
+  ): Promise<ErpFeeConfig> {
+    const cached = this.feeConfigCache.get(schoolId);
+    if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    const normalizedBase = normalizeErpBaseUrl(baseUrl);
+    const res = await this.request<any>(
+      `${normalizedBase}/admissions/public/fee-config`,
+      {
+        method: "GET",
+        apiKey: apiKey.trim(),
+        isAdminContext: false,
+      },
+    );
+
+    const data = res?.data ?? res ?? {};
+    const config: ErpFeeConfig = {
+      enabled: Boolean(data.enabled),
+      currency: String(data.currency || "BDT"),
+      defaultFee: Number(data.defaultFee ?? 0),
+      classFees:
+        data.classFees && typeof data.classFees === "object"
+          ? data.classFees
+          : {},
+      allowOnlinePayment: Boolean(data.allowOnlinePayment),
+      allowManualPayment: Boolean(data.allowManualPayment),
+      ...(data.manualInstructions
+        ? { manualInstructions: String(data.manualInstructions) }
+        : {}),
+      activeGateways: Array.isArray(data.activeGateways)
+        ? data.activeGateways.map((g: any) => String(g))
+        : [],
+    };
+
+    this.feeConfigCache.set(schoolId, {
+      data: config,
+      expiresAt: Date.now() + this.FEE_CONFIG_CACHE_TTL_MS,
+    });
+
+    return config;
+  }
+
+  async initiateOnlinePayment(
+    baseUrl: string,
+    apiKey: string,
+    payload: ErpPayOnlinePayload,
+  ): Promise<ErpPayOnlineResponse> {
+    const normalizedBase = normalizeErpBaseUrl(baseUrl);
+    const res = await this.request<any>(
+      `${normalizedBase}/admissions/public/pay-online`,
+      {
+        method: "POST",
+        apiKey: apiKey.trim(),
+        body: payload,
+        isAdminContext: false,
+      },
+    );
+    return res?.data ?? res;
+  }
+
+  async verifyOnlinePayment(
+    baseUrl: string,
+    apiKey: string,
+    payload: ErpVerifyOnlinePaymentPayload,
+  ): Promise<ErpVerifyOnlinePaymentResponse> {
+    const normalizedBase = normalizeErpBaseUrl(baseUrl);
+    const res = await this.request<any>(
+      `${normalizedBase}/admissions/public/verify-online-payment`,
+      {
+        method: "POST",
+        apiKey: apiKey.trim(),
+        body: payload,
+        isAdminContext: false,
+      },
+    );
+    return res?.data ?? res;
+  }
+
+  async submitManualPayment(
+    baseUrl: string,
+    apiKey: string,
+    payload: ErpPayManualPayload,
+  ): Promise<ErpPayManualResponse> {
+    const normalizedBase = normalizeErpBaseUrl(baseUrl);
+    const res = await this.request<any>(
+      `${normalizedBase}/admissions/public/pay-manual`,
+      {
+        method: "POST",
+        apiKey: apiKey.trim(),
+        body: payload,
+        isAdminContext: false,
+      },
+    );
+    return res?.data ?? res;
   }
 
   async submitAdmission(

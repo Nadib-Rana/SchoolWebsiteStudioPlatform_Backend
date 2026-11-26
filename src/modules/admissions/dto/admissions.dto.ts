@@ -7,6 +7,7 @@ import {
   IsDateString,
   IsObject,
   MaxLength,
+  IsUrl,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { AdmissionStatus } from "@prisma/client";
@@ -56,6 +57,21 @@ export class ApplyAdmissionDto {
   @IsOptional()
   bloodGroup?: string;
 
+  @ApiPropertyOptional({ example: "20122691234567890" })
+  @IsString()
+  @IsOptional()
+  birthRegistrationNo?: string;
+
+  @ApiPropertyOptional({ example: "Kamal Rahman" })
+  @IsString()
+  @IsOptional()
+  fatherName?: string;
+
+  @ApiPropertyOptional({ example: "Fatema Begum" })
+  @IsString()
+  @IsOptional()
+  motherName?: string;
+
   @ApiProperty({ example: "Grade 7" })
   @IsString()
   @IsNotEmpty()
@@ -91,10 +107,20 @@ export class ApplyAdmissionDto {
   @IsOptional()
   guardianEmail?: string;
 
-  @ApiProperty({ example: "Dhaka, Bangladesh" })
+  @ApiPropertyOptional({ example: "Dhaka, Bangladesh" })
   @IsString()
-  @IsNotEmpty()
-  address: string;
+  @IsOptional()
+  address?: string;
+
+  @ApiPropertyOptional({ example: "House 12, Road 4, Mirpur, Dhaka" })
+  @IsString()
+  @IsOptional()
+  presentAddress?: string;
+
+  @ApiPropertyOptional({ example: "Village Rampur, Cumilla" })
+  @IsString()
+  @IsOptional()
+  permanentAddress?: string;
 
   @ApiPropertyOptional({ example: "https://cdn.example.com/docs/cert.pdf" })
   @IsString()
@@ -172,4 +198,85 @@ export class AdmissionQueryDto {
   @IsString()
   @IsOptional()
   grade?: string;
+}
+
+export class PayOnlineAdmissionDto {
+  @ApiProperty({ example: "APP-20261127-4821" })
+  @IsString()
+  @IsNotEmpty()
+  applicationNumber: string;
+
+  @ApiProperty({ example: "01711000000" })
+  @IsString()
+  @IsNotEmpty()
+  identifier: string;
+
+  @ApiProperty({ example: "SSLCOMMERZ" })
+  @IsString()
+  @IsNotEmpty()
+  gateway: string;
+
+  @ApiProperty({ example: "https://school.example.com/admissions/payment-callback" })
+  @IsUrl({ require_tld: false })
+  @IsNotEmpty()
+  callbackBaseUrl: string;
+}
+
+export class VerifyOnlinePaymentDto {
+  @ApiProperty({ example: "APP-20261127-4821" })
+  @IsString()
+  @IsNotEmpty()
+  applicationNumber: string;
+
+  @ApiProperty({ example: "01711000000" })
+  @IsString()
+  @IsNotEmpty()
+  identifier: string;
+
+  @ApiProperty({ example: "SSLCOMMERZ" })
+  @IsString()
+  @IsNotEmpty()
+  gateway: string;
+
+  @ApiPropertyOptional({ example: "SSLC-1732648800-a1b2c3d4" })
+  @IsString()
+  @IsOptional()
+  transactionId?: string;
+
+  @ApiPropertyOptional({ example: "VAL_ID_FROM_SSLCOMMERZ" })
+  @IsString()
+  @IsOptional()
+  valId?: string;
+
+  @ApiPropertyOptional({ example: "PAYMENT_ID_FROM_BKASH" })
+  @IsString()
+  @IsOptional()
+  paymentID?: string;
+}
+
+export class PayManualAdmissionDto {
+  @ApiProperty({ example: "APP-20261127-4821" })
+  @IsString()
+  @IsNotEmpty()
+  applicationNumber: string;
+
+  @ApiProperty({ example: "01711000000" })
+  @IsString()
+  @IsNotEmpty()
+  identifier: string;
+
+  @ApiProperty({ example: "BKASH" })
+  @IsString()
+  @IsNotEmpty()
+  paymentMethod: string;
+
+  @ApiProperty({ example: "9K4M2P7Q1X" })
+  @IsString()
+  @IsNotEmpty()
+  transactionId: string;
+
+  @ApiPropertyOptional({ example: "Sent from 01711000000" })
+  @IsString()
+  @IsOptional()
+  paymentNote?: string;
 }

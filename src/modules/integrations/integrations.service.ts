@@ -780,10 +780,27 @@ export class IntegrationsService {
               : {}),
             relationship,
             ...(app.bloodGroup ? { bloodGroup: app.bloodGroup } : {}),
+            ...(docsObj?.birthRegistrationNo
+              ? { birthRegistrationNo: String(docsObj.birthRegistrationNo) }
+              : {}),
+            ...(docsObj?.fatherName
+              ? { fatherName: String(docsObj.fatherName) }
+              : {}),
+            ...(docsObj?.motherName
+              ? { motherName: String(docsObj.motherName) }
+              : {}),
             ...(app.previousSchool
               ? { previousSchool: app.previousSchool }
               : {}),
             ...(app.address ? { address: app.address } : {}),
+            ...(docsObj?.presentAddress
+              ? { presentAddress: String(docsObj.presentAddress) }
+              : app.address
+                ? { presentAddress: app.address }
+                : {}),
+            ...(docsObj?.permanentAddress
+              ? { permanentAddress: String(docsObj.permanentAddress) }
+              : {}),
             ...(docsObj?.photoUrl
               ? { photoUrl: String(docsObj.photoUrl) }
               : {}),
