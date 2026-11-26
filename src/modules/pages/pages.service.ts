@@ -77,11 +77,12 @@ export class PagesService {
   }
 
   async createPage(schoolId: string, dto: CreatePageDto) {
+    const normalizedSlug = dto.slug.toLowerCase().trim().replace(/^\/+/, "");
     const existing = await this.prisma.webPage.findUnique({
       where: {
         schoolId_slug: {
           schoolId,
-          slug: dto.slug.toLowerCase().trim(),
+          slug: normalizedSlug,
         },
       },
     });
@@ -95,7 +96,7 @@ export class PagesService {
     return this.prisma.webPage.create({
       data: {
         schoolId,
-        slug: dto.slug.toLowerCase().trim(),
+        slug: normalizedSlug,
         title: dto.title,
         navLabel: dto.navLabel || dto.title,
         isHome: dto.isHome || false,
@@ -103,6 +104,7 @@ export class PagesService {
         status: dto.status,
         metaTitle: dto.metaTitle,
         metaDescription: dto.metaDescription,
+        featuredImage: dto.featuredImage?.trim() || null,
       },
       include: { sections: true },
     });

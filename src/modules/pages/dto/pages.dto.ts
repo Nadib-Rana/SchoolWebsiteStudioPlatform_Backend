@@ -76,6 +76,11 @@ export class CreatePageDto {
   @IsString()
   @IsOptional()
   metaDescription?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  featuredImage?: string;
 }
 
 export class UpdatePageDto {
