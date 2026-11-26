@@ -80,6 +80,7 @@ export interface ErpTrackResponse {
   paymentNote?: string | null;
   paidAt?: string | null;
   currency?: string;
+  photoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;

@@ -552,6 +552,7 @@ export class AdmissionsService {
           feeAmount,
           paymentStatus,
           currency,
+          photoUrl: validPhotoUrl || null,
           message:
             "Your admission application has been submitted to the school ERP. Keep your application number safe to track your status.",
         };
@@ -604,6 +605,7 @@ export class AdmissionsService {
           feeAmount: 0,
           paymentStatus: "NOT_REQUIRED",
           currency: "BDT",
+          photoUrl: validPhotoUrl || null,
           message:
             "Your admission application has been received and safely queued for ERP processing. Please keep your reference number to track status.",
         };
@@ -647,6 +649,7 @@ export class AdmissionsService {
       feeAmount: 0,
       paymentStatus: "NOT_REQUIRED",
       currency: "BDT",
+      photoUrl: validPhotoUrl || null,
       message:
         "Your admission application has been registered successfully. Please keep your application number safe for status tracking.",
     };
@@ -747,6 +750,10 @@ export class AdmissionsService {
             paymentNote: erpTrack.paymentNote ?? null,
             paidAt: erpTrack.paidAt ?? null,
             currency: erpTrack.currency || "BDT",
+            photoUrl:
+              erpTrack.photoUrl ||
+              (localMatch?.documents as Record<string, any> | null)?.photoUrl ||
+              null,
             submittedAt:
               erpTrack.createdAt ||
               localMatch?.createdAt?.toISOString() ||
@@ -818,6 +825,7 @@ export class AdmissionsService {
       );
     }
 
+    const docs = application.documents as Record<string, any> | null;
     return {
       source: application.externalSource === "ERP" ? ("ERP" as const) : ("LOCAL" as const),
       applicationNumber: application.applicationNumber,
@@ -827,6 +835,7 @@ export class AdmissionsService {
       status: application.status,
       interviewDate: application.interviewDate?.toISOString() || null,
       notes: application.notes,
+      photoUrl: docs?.photoUrl || null,
       submittedAt: application.createdAt,
       lastUpdatedAt: application.updatedAt,
     };

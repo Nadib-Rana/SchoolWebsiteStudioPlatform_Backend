@@ -385,6 +385,7 @@ describe("AdmissionsService — Zero-Downtime ERP Offline Fallback", () => {
       paymentMethod: "SSLCOMMERZ",
       transactionId: "SSLC-1732648800-a1b2c3d4",
       paidAt: "2026-11-27T01:00:00Z",
+      photoUrl: "data:image/webp;base64,testphoto",
     });
     const trackRes = await service.track(
       "APP-20261127-4821",
@@ -394,6 +395,7 @@ describe("AdmissionsService — Zero-Downtime ERP Offline Fallback", () => {
     expect(trackRes.paymentStatus).toBe("PAID");
     expect(trackRes.feeAmount).toBe(500);
     expect(trackRes.transactionId).toBe("SSLC-1732648800-a1b2c3d4");
+    expect(trackRes.photoUrl).toBe("data:image/webp;base64,testphoto");
   });
 });
 
