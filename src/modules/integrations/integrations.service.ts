@@ -541,7 +541,7 @@ export class IntegrationsService {
             ? `, ${pendingSync.syncedCount} queued admission(s) pushed`
             : "";
 
-        detail = `Live ERP (${testRes.schoolName}) synced: ${classes.length} class(es), ${syncedTeachers} teacher(s), ${syncedNotices} notice(s)${pendingSummary}.`;
+        detail = `Live ERP (${testRes.schoolName || activeErp.schoolName || "Connected"}) synced: ${classes.length} class(es), ${syncedTeachers} teacher(s), ${syncedNotices} notice(s)${pendingSummary}.`;
       } else {
         const [teacherCount, noticeCount] = await Promise.all([
           this.prisma.teacher.count({ where: { schoolId } }),
