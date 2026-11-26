@@ -28,11 +28,30 @@ export class SettingsService {
   }
 
   async updateSettings(schoolId: string, dto: UpdateSettingsDto) {
-    await this.getSettings(schoolId);
+    const existing = await this.getSettings(schoolId);
+
+    const existingPrefs =
+      existing.notificationPreferences &&
+      typeof existing.notificationPreferences === "object" &&
+      !Array.isArray(existing.notificationPreferences)
+        ? (existing.notificationPreferences as Record<string, any>)
+        : {};
+
+    const mergedData: UpdateSettingsDto = {
+      ...dto,
+      ...(dto.notificationPreferences
+        ? {
+            notificationPreferences: {
+              ...existingPrefs,
+              ...dto.notificationPreferences,
+            },
+          }
+        : {}),
+    };
 
     return this.prisma.schoolSettings.update({
       where: { schoolId },
-      data: dto,
+      data: mergedData,
     });
   }
 }
